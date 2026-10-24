@@ -29,7 +29,7 @@ class PpcDashboardServiceTest {
         Task done = task("Done", LocalDate.of(2026, 8, 20), TaskStatus.DONE);
         when(tasks.findByAssigneeIdOrderByStatusAscPositionAsc(2L)).thenReturn(List.of(today, overdue, done));
         when(materials.findByActualArrivalDateIsNull()).thenReturn(List.of());
-        when(planning.findUpcoming(any(), any())).thenReturn(List.of());
+        when(planning.findUpcoming(any(), any(), any())).thenReturn(List.of());
 
         var result = service.get(bob);
 

@@ -7,7 +7,7 @@ import { dateKey, eventDatesToPlanningDates, formatDateInput, planningItemToEven
 
 const EMPTY_FORM = { title: "", description: "", startDate: "", endDate: "", priority: "", status: "" };
 
-function PlanningModal({ item, initialDate, onClose, onSaved, onDeleted }) {
+function PlanningModal({ item, initialDate, departmentId, departmentName, onClose, onSaved, onDeleted }) {
   const [form, setForm] = useState(item ? { ...EMPTY_FORM, ...item } : { ...EMPTY_FORM, startDate: initialDate, endDate: initialDate });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -20,7 +20,7 @@ function PlanningModal({ item, initialDate, onClose, onSaved, onDeleted }) {
     if (!form.startDate || !form.endDate || form.endDate < form.startDate) { setError("End date must be on or after start date."); return; }
     setSaving(true);
     try {
-      const payload = { title: form.title.trim(), description: form.description?.trim() || null, startDate: form.startDate, endDate: form.endDate, priority: form.priority?.trim() || null, status: form.status?.trim() || null };
+      const payload = { ...(!isEdit && departmentId ? { departmentId } : {}), title: form.title.trim(), description: form.description?.trim() || null, startDate: form.startDate, endDate: form.endDate, priority: form.priority?.trim() || null, status: form.status?.trim() || null };
       const response = await apiFetch(isEdit ? `/api/ppc/planning/${item.id}` : "/api/ppc/planning", { method: isEdit ? "PUT" : "POST", body: JSON.stringify(payload) });
       if (!response.ok) throw new Error((await response.text()) || `Save failed (${response.status}).`);
       onSaved(await response.json());
@@ -36,7 +36,7 @@ function PlanningModal({ item, initialDate, onClose, onSaved, onDeleted }) {
 
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <div className="modal-card ppc-planning-modal" role="dialog" aria-modal="true" aria-labelledby="planning-modal-title">
-      <div className="modal-header"><div><p className="eyebrow">PPC Planning</p><h2 id="planning-modal-title">{isEdit ? "Edit Planning Item" : "Add Planning Item"}</h2></div><button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button></div>
+      <div className="modal-header"><div><p className="eyebrow">{departmentName} Planning</p><h2 id="planning-modal-title">{isEdit ? "Edit Planning Item" : "Add Planning Item"}</h2></div><button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button></div>
       {error && <div className="admin-message error">{error}</div>}
       <form className="admin-form" onSubmit={save}>
         <label>Title<input value={form.title} onChange={update("title")} maxLength={160} required autoFocus /></label>
@@ -49,17 +49,22 @@ function PlanningModal({ item, initialDate, onClose, onSaved, onDeleted }) {
   </div>;
 }
 
-export default function PpcPlanningPage() {
+// Every department has its own planning calendar; administrators can switch between departments.
+export default function PpcPlanningPage({ user, departments = [] }) {
   const today = useMemo(() => new Date(), []);
+  const isAdmin = user?.role === "ADMIN";
+  const [departmentId, setDepartmentId] = useState(user?.departmentId ?? null);
+  const departmentName = (isAdmin && departments.find((department) => department.id === departmentId)?.name) || user?.departmentName || "Department";
+  const departmentQuery = isAdmin && departmentId ? `&departmentId=${departmentId}` : "";
   const calendarRef = useRef(null);
   const calendarContainerRef = useRef(null);
   const [items, setItems] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [modal, setModal] = useState(null); const [calendarMonth, setCalendarMonth] = useState("");
   const loadMonth = useCallback(async (date) => {
     const year = date.getFullYear(); const month = date.getMonth() + 1;
     setCalendarMonth(`${year}-${month}`); setLoading(true); setError("");
-    try { const response = await apiFetch(`/api/ppc/planning?year=${year}&month=${month}`); if (!response.ok) throw new Error(`Unable to load planning items (${response.status}).`); const data = await response.json(); if (!Array.isArray(data)) throw new Error("Planning data was not returned in the expected format."); setItems(data); }
+    try { const response = await apiFetch(`/api/ppc/planning?year=${year}&month=${month}${departmentQuery}`); if (!response.ok) throw new Error(`Unable to load planning items (${response.status}).`); const data = await response.json(); if (!Array.isArray(data)) throw new Error("Planning data was not returned in the expected format."); setItems(data); }
     catch (loadError) { setItems([]); setError(loadError.message); } finally { setLoading(false); }
-  }, []);
+  }, [departmentQuery]);
   const handleDatesSet = useCallback((info) => {
     const date = info.view.currentStart;
     const nextMonth = `${date.getFullYear()}-${date.getMonth() + 1}`;
@@ -71,6 +76,12 @@ export default function PpcPlanningPage() {
     catch (saveError) { eventInfo.revert(); setError(saveError.message); }
   }, []);
   useEffect(() => { if (!calendarMonth) loadMonth(today); }, [calendarMonth, loadMonth, today]);
+  const loadedDepartmentQuery = useRef(departmentQuery);
+  useEffect(() => {
+    if (loadedDepartmentQuery.current === departmentQuery) return;
+    loadedDepartmentQuery.current = departmentQuery;
+    const api = calendarRef.current?.getApi(); if (api) loadMonth(api.view.currentStart);
+  }, [departmentQuery, loadMonth]);
   useEffect(() => {
     const container = calendarContainerRef.current;
     if (!container) return undefined;
@@ -94,9 +105,9 @@ export default function PpcPlanningPage() {
   const removeItem = (id) => { setItems((current) => current.filter((entry) => entry.id !== id)); setModal(null); };
 
   return <section className="ppc-planning-page">
-    <div className="admin-page-heading"><div><p className="eyebrow">PPC / Planning</p><h1>Planning Calendar</h1><p>Coordinate production planning across the month.</p></div><button type="button" className="primary-button" onClick={() => setModal({ initialDate: dateKey(today) })}>+ Add planning item</button></div>
+    <div className="admin-page-heading"><div><p className="eyebrow">{departmentName} / Planning</p><h1>Planning Calendar</h1><p>Coordinate {departmentName} planning across the month.</p>{isAdmin && departments.length > 0 && <label className="planning-department-picker">Department <select value={departmentId ?? ""} onChange={(event) => setDepartmentId(Number(event.target.value))}>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>}</div><button type="button" className="primary-button" onClick={() => setModal({ initialDate: dateKey(today) })}>+ Add planning item</button></div>
     {error && <div className="admin-message error">{error}</div>}
     <div className="planning-calendar-card"><div ref={calendarContainerRef} className="planning-calendar-scroll"><FullCalendar ref={calendarRef} plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" firstDay={1} weekends editable eventDurationEditable eventStartEditable height="auto" headerToolbar={{ left: "today prev", center: "title", right: "next" }} buttonText={{ today: "Today" }} events={events} dayMaxEvents dateClick={(info) => setModal({ initialDate: info.dateStr })} eventClick={(info) => setModal({ item: info.event.extendedProps.item })} eventDrop={updateDates} eventResize={updateDates} datesSet={handleDatesSet} eventContent={(info) => { const item = info.event.extendedProps.item || {}; return <div className="flowops-calendar-event"><span className="planning-item-title">{info.event.title}</span>{(item.priority || item.status) && <small>{item.priority || item.status}</small>}</div>; }} /></div>{loading && <div className="planning-loading">Loading planning items…</div>}</div>
-    {modal && <PlanningModal {...modal} onClose={() => setModal(null)} onSaved={upsert} onDeleted={removeItem} />}
+    {modal && <PlanningModal {...modal} departmentId={isAdmin ? departmentId : null} departmentName={departmentName} onClose={() => setModal(null)} onSaved={upsert} onDeleted={removeItem} />}
   </section>;
 }

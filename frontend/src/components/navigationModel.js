@@ -9,7 +9,7 @@ export function getNavigationItems(user) {
     ...(canSeeTeam ? [["staff", "Team"]] : []), ...(user?.role === "MANAGER" ? [["reviews", "Reviews"]] : []), ["report", "Monthly Reports"], ["desktop-notifications", "Desktop Notifications"],
   ], user);
   return placeCompletedSecondLast([
-    ["dashboard", "Dashboard"], ...(!isAdmin ? [["personal", "My Kanban"]] : []), ["completed", "Completed Tasks"], ...(canSeeRequests ? [["requests", "Requests"]] : []), ...(canSeeProjects ? [["project", "Projects"]] : []), ...(canSeeTeam ? [["staff", "Team"]] : []),
+    ["dashboard", "Dashboard"], ...(!isAdmin ? [["personal", "My Kanban"]] : []), ["completed", "Completed Tasks"], ...(canSeeRequests ? [["requests", "Requests"]] : []), ...(canSeeProjects ? [["project", "Projects"]] : []), ["ppc-planning", "Planning"], ...(canSeeTeam ? [["staff", "Team"]] : []),
     ...(user?.role === "MANAGER" ? [["reviews", "Reviews"]] : []), ["report", "Monthly Reports"], ["desktop-notifications", "Desktop Notifications"],
     ...(isAdmin ? [["users-admin", "Users"], ["data-management", "Data Management"], ["client-access", "Client Access"]] : []),
   ], user);
