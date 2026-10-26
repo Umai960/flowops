@@ -3,15 +3,17 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { apiFetch } from "../api/apiFetch";
+import ChatPanel from "../components/ChatPanel";
 import { dateKey, eventDatesToPlanningDates, formatDateInput, planningItemToEvent } from "./ppcPlanningUtils.js";
 
 const EMPTY_FORM = { title: "", description: "", startDate: "", endDate: "", priority: "", status: "" };
 
-function PlanningModal({ item, initialDate, departmentId, departmentName, onClose, onSaved, onDeleted }) {
+function PlanningModal({ item, initialDate, departmentId, departmentName, user, onClose, onSaved, onDeleted }) {
   const [form, setForm] = useState(item ? { ...EMPTY_FORM, ...item } : { ...EMPTY_FORM, startDate: initialDate, endDate: initialDate });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const isEdit = Boolean(item);
+  const [tab, setTab] = useState("details");
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
   async function save(event) {
@@ -35,8 +37,13 @@ function PlanningModal({ item, initialDate, departmentId, departmentName, onClos
   }
 
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-    <div className="modal-card ppc-planning-modal" role="dialog" aria-modal="true" aria-labelledby="planning-modal-title">
+    <div className={`modal-card ppc-planning-modal ${tab === "chat" ? "modal-card-chat" : ""}`} role="dialog" aria-modal="true" aria-labelledby="planning-modal-title">
       <div className="modal-header"><div><p className="eyebrow">{departmentName} Planning</p><h2 id="planning-modal-title">{isEdit ? "Edit Planning Item" : "Add Planning Item"}</h2></div><button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button></div>
+      {isEdit && <div className="modal-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={tab === "details"} className={tab === "details" ? "is-active" : ""} onClick={() => setTab("details")}>Details</button>
+        <button type="button" role="tab" aria-selected={tab === "chat"} className={tab === "chat" ? "is-active" : ""} onClick={() => setTab("chat")}>Chat</button>
+      </div>}
+      {tab === "chat" ? <ChatPanel subjectType="planning" subjectId={item.id} user={user} /> : <>
       {error && <div className="admin-message error">{error}</div>}
       <form className="admin-form" onSubmit={save}>
         <label>Title<input value={form.title} onChange={update("title")} maxLength={160} required autoFocus /></label>
@@ -45,6 +52,7 @@ function PlanningModal({ item, initialDate, departmentId, departmentName, onClos
         <label>End date<input type="date" value={formatDateInput(form.endDate)} onChange={update("endDate")} required /></label>
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button>{isEdit && <button type="button" className="danger-button" onClick={remove} disabled={saving}>Delete</button>}<button type="submit" className="primary-button" disabled={saving}>{saving ? "Saving…" : "Save"}</button></div>
       </form>
+      </>}
     </div>
   </div>;
 }
@@ -108,6 +116,6 @@ export default function PpcPlanningPage({ user, departments = [] }) {
     <div className="admin-page-heading"><div><p className="eyebrow">{departmentName} / Planning</p><h1>Planning Calendar</h1><p>Coordinate {departmentName} planning across the month.</p>{isAdmin && departments.length > 0 && <label className="planning-department-picker">Department <select value={departmentId ?? ""} onChange={(event) => setDepartmentId(Number(event.target.value))}>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>}</div><button type="button" className="primary-button" onClick={() => setModal({ initialDate: dateKey(today) })}>+ Add planning item</button></div>
     {error && <div className="admin-message error">{error}</div>}
     <div className="planning-calendar-card"><div ref={calendarContainerRef} className="planning-calendar-scroll"><FullCalendar ref={calendarRef} plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" firstDay={1} weekends editable eventDurationEditable eventStartEditable height="auto" headerToolbar={{ left: "today prev", center: "title", right: "next" }} buttonText={{ today: "Today" }} events={events} dayMaxEvents dateClick={(info) => setModal({ initialDate: info.dateStr })} eventClick={(info) => setModal({ item: info.event.extendedProps.item })} eventDrop={updateDates} eventResize={updateDates} datesSet={handleDatesSet} eventContent={(info) => { const item = info.event.extendedProps.item || {}; return <div className="flowops-calendar-event"><span className="planning-item-title">{info.event.title}</span>{(item.priority || item.status) && <small>{item.priority || item.status}</small>}</div>; }} /></div>{loading && <div className="planning-loading">Loading planning items…</div>}</div>
-    {modal && <PlanningModal {...modal} departmentId={isAdmin ? departmentId : null} departmentName={departmentName} onClose={() => setModal(null)} onSaved={upsert} onDeleted={removeItem} />}
+    {modal && <PlanningModal {...modal} user={user} departmentId={isAdmin ? departmentId : null} departmentName={departmentName} onClose={() => setModal(null)} onSaved={upsert} onDeleted={removeItem} />}
   </section>;
 }

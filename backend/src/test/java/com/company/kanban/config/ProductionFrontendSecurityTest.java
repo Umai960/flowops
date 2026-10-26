@@ -36,6 +36,7 @@ class ProductionFrontendSecurityTest {
         assertIndex("/activate?token=test");
         assertIndex("/admin/users");
         assertIndex("/admin/settings/data-management");
+        assertIndex("/chat?type=task&id=1");
     }
 
     @Test

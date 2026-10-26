@@ -28,6 +28,8 @@ import RawMaterialArrivalsPage from "./pages/RawMaterialArrivalsPage";
 import DesktopNotificationsPage from "./pages/DesktopNotificationsPage";
 import CompletedTasksPage from "./pages/CompletedTasksPage";
 import InterdepartmentRequestsPage from "./pages/InterdepartmentRequestsPage";
+import ChatPage from "./pages/ChatPage";
+import { chatTargetFromLocation } from "./pages/chatTarget.js";
 import RddTaskActions from "./components/RddTaskActions";
 import { apiFetch } from "./api/apiFetch";
 import { useAuth } from "./context/AuthContext";
@@ -42,6 +44,7 @@ function viewForLocation() {
   if (path === "/completed") return "completed";
   if (path === "/requests" || path.startsWith("/requests/")) return "requests";
   if (path === "/ppc/planning") return "ppc-planning";
+  if (path === "/chat") return "chat";
   if (path === "/ppc/raw-material-arrivals") return "ppc-arrivals";
   if (path === "/reviews") return "reviews";
   if (path === "/projects") return "project";
@@ -85,6 +88,7 @@ function App() {
   const canDeleteTask = isAdmin || isManager;
   const initialView = viewForLocation();
   const [activeView, setActiveView] = useState(initialView);
+  const [chatTarget, setChatTarget] = useState(() => chatTargetFromLocation());
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [staffRefreshKey, setStaffRefreshKey] = useState(0);
   const [selectedReportUserId, setSelectedReportUserId] = useState(null);
@@ -758,11 +762,16 @@ function App() {
         if (view === "dashboard") setStaffRefreshKey((currentKey) => currentKey + 1);
         if (view === "report") { setSelectedReportUserId(null); setSelectedReportDate(null); }
         setActiveView(view);
-        const path=view==='completed'?'/completed':view==='requests'?'/requests':view==='desktop-notifications'?'/settings/desktop-notifications':view==='ppc-planning'?'/ppc/planning':view==='ppc-arrivals'?'/ppc/raw-material-arrivals':view==='users-admin'?'/admin/users':view==='data-management'?'/admin/settings/data-management':view==='client-access'?'/admin/settings/client-access':view==='report'?'/reports/monthly':'/';
+        const path=view==='completed'?'/completed':view==='requests'?'/requests':view==='desktop-notifications'?'/settings/desktop-notifications':view==='ppc-planning'?'/ppc/planning':view==='chat'?'/chat':view==='ppc-arrivals'?'/ppc/raw-material-arrivals':view==='users-admin'?'/admin/users':view==='data-management'?'/admin/settings/data-management':view==='client-access'?'/admin/settings/client-access':view==='report'?'/reports/monthly':'/';
         window.history.pushState({},'',path);
       }}
       onNotificationNavigate={(notification) => {
-        if (notification.requestId) {
+        if (notification.type === "CHAT_MESSAGE") {
+          const destination = notification.destination || "/chat";
+          setChatTarget(chatTargetFromLocation(destination.includes("?") ? destination.slice(destination.indexOf("?")) : ""));
+          setActiveView("chat");
+          window.history.pushState({}, "", destination);
+        } else if (notification.requestId) {
           setActiveView("requests");
           window.history.pushState({}, "", `/requests/${notification.requestId}`);
         } else if (notification.rawMaterialArrivalId) {
@@ -805,6 +814,8 @@ function App() {
         <DataManagementPage />
       ) : activeView === "client-access" && isAdmin ? (
         <ClientAccessPage />
+      ) : activeView === "chat" ? (
+        <ChatPage user={user} target={chatTarget} onSelect={(target) => { setChatTarget(target); window.history.pushState({}, "", `/chat?type=${target.type}&id=${target.id}`); }} />
       ) : activeView === "ppc-planning" ? (
         <PpcPlanningPage user={user} departments={departments} />
       ) : activeView === "ppc-arrivals" && (isAdmin || user?.departmentName?.toUpperCase() === "PPC") ? (

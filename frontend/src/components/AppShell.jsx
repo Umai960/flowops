@@ -3,6 +3,7 @@ import NotificationBell from "./NotificationBell";
 import FlowOpsLogo from "./FlowOpsLogo";
 import ConnectionStatus from "./ConnectionStatus";
 import { useNotifications } from "../context/NotificationContext";
+import { useChat } from "../context/ChatContext";
 import { getNavigationItems } from "./navigationModel";
 
 const icons = {
@@ -17,6 +18,7 @@ const icons = {
   users: <><circle cx="9" cy="8" r="3"/><path d="M3 20c.5-4 2.5-6 6-6s5.5 2 6 6"/><path d="M17 8v6M14 11h6"/></>,
   settings: <><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A8 8 0 0 0 15 6l-.3-2.5h-4L10.4 6A8 8 0 0 0 9 7.1l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1A8 8 0 0 0 10.4 18l.3 2.5h4L15 18a8 8 0 0 0 1.5-1.1l2.4 1 2-3.4-2-1.5c.1-.3.1-.7.1-1z"/></>,
   network: <><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M8.5 10.5a5 5 0 0 1 7 0M10.5 12.5a2.2 2.2 0 0 1 3 0"/></>,
+  chat: <><path d="M4 5h16v11H9l-5 4z" /><path d="M8 9h8M8 12h5" /></>,
   requests: <><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="m16 17 2 2 3-3"/></>,
   menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
   chevronLeft: <path d="m15 6-6 6 6 6" />,
@@ -29,9 +31,10 @@ function Icon({ name, size = 19 }) {
 
 function AppShell({ user, activeView, onNavigate, onNotificationNavigate, onLogout, children }) {
   const { fetchUnreadCount } = useNotifications();
+  const { unreadCount: chatUnread } = useChat();
   const [collapsed, setCollapsed] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const items = getNavigationItems(user).map(([id, label]) => ({ id, label, icon: id === "requests" ? "requests" : id === "ppc-arrivals" ? "shipment" : id === "ppc-planning" ? "calendar" : id === "personal" ? "kanban" : id === "completed" ? "report" : id === "project" ? "projects" : id === "staff" ? "team" : id === "reviews" ? "reviews" : id === "report" ? "report" : id === "users-admin" ? "users" : id === "client-access" ? "network" : id === "dashboard" ? "dashboard" : "settings" }));
+  const items = getNavigationItems(user).map(([id, label]) => ({ id, label, icon: id === "chat" ? "chat" : id === "requests" ? "requests" : id === "ppc-arrivals" ? "shipment" : id === "ppc-planning" ? "calendar" : id === "personal" ? "kanban" : id === "completed" ? "report" : id === "project" ? "projects" : id === "staff" ? "team" : id === "reviews" ? "reviews" : id === "report" ? "report" : id === "users-admin" ? "users" : id === "client-access" ? "network" : id === "dashboard" ? "dashboard" : "settings" }));
 
   useEffect(() => {
     const closeOnEscape = (event) => { if (event.key === "Escape") setDrawerOpen(false); };
@@ -49,7 +52,7 @@ function AppShell({ user, activeView, onNavigate, onNotificationNavigate, onLogo
       </div>
       <div className="sidebar-section-label">Workspace</div>
       <nav className="sidebar-nav" aria-label="Primary navigation">
-        {items.map((item) => <button key={item.id} type="button" title={collapsed ? item.label : undefined} className={activeView === item.id ? "is-active" : ""} onClick={() => navigate(item.id)}><Icon name={item.icon} /><span>{item.label}</span>{activeView === item.id && <i />}</button>)}
+        {items.map((item) => <button key={item.id} type="button" title={collapsed ? item.label : undefined} className={activeView === item.id ? "is-active" : ""} onClick={() => navigate(item.id)}><Icon name={item.icon} /><span>{item.label}</span>{item.id === "chat" && chatUnread > 0 && <b className="nav-badge" aria-label={`${chatUnread} unread chat messages`}>{chatUnread > 99 ? "99+" : chatUnread}</b>}{activeView === item.id && <i />}</button>)}
       </nav>
       <div className="sidebar-spacer" />
       <div className="sidebar-footer">

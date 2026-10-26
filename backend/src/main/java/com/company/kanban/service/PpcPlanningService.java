@@ -30,6 +30,12 @@ public class PpcPlanningService {
         this.authorizationService = authorizationService;
     }
 
+    // Optional so unit tests that build PpcPlanningService directly do not need the chat module.
+    private ChatService chatService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setChatService(ChatService chatService) { this.chatService = chatService; }
+
     @Transactional(readOnly = true)
     public List<PpcPlanningItemResponse> getItems(int year, int month, Long departmentId, User user) {
         Department department = resolveDepartment(departmentId, user);
@@ -64,7 +70,9 @@ public class PpcPlanningService {
 
     @Transactional
     public void delete(Long id, User user) {
-        repository.delete(findAccessible(id, user));
+        PpcPlanningItem item = findAccessible(id, user);
+        if (chatService != null) chatService.deleteForSubject(com.company.kanban.entity.ChatSubjectType.PLANNING, item.getId());
+        repository.delete(item);
     }
 
     private Department resolveDepartment(Long departmentId, User user) {

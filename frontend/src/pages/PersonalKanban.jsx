@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../api/apiFetch";
 import CreateTaskModal from "../components/CreateTaskModal";
 import RddTaskActions from "../components/RddTaskActions";
+import TaskChatModal from "../components/TaskChatModal";
 
 const API_BASE_URL = "";
 const DRAG_START_THRESHOLD = 6;
@@ -20,6 +21,7 @@ function PersonalKanban({ user, users = [], departments = [] }) {
   const [dropIndicator, setDropIndicator] = useState(null);
   const [dragPreview, setDragPreview] = useState(null);
   const [showCreateGeneral, setShowCreateGeneral] = useState(false);
+  const [chatTask, setChatTask] = useState(null);
   const tasksRef = useRef(tasks);
   const pointerDownRef = useRef(null);
   const draggedTaskRef = useRef(null);
@@ -267,6 +269,7 @@ function PersonalKanban({ user, users = [], departments = [] }) {
                       <div className="task-card-footer"><span>{task.assigneeName || "Unassigned"}</span>{task.dueDate && <span>{compactDate(task.dueDate)}</span>}</div>
                       {task.checkpointSummary?.currentOrNextTitle && <small className="task-checkpoint-hint"><span>{task.checkpointSummary.currentOrNextLabel}</span><strong>{task.checkpointSummary.currentOrNextTitle}</strong></small>}
                       <RddTaskActions task={task} user={user} onChanged={loadMyTasks} />
+                      <button type="button" className="task-chat-button" onPointerDown={(event) => event.stopPropagation()} onClick={() => setChatTask(task)}>💬 Chat</button>
                     </div>
 
                     {dropIndicator?.status === status.value &&
@@ -306,6 +309,8 @@ function PersonalKanban({ user, users = [], departments = [] }) {
           </div>
         </div>
       )}
+
+      <TaskChatModal task={chatTask} user={user} onClose={() => setChatTask(null)} />
 
       <CreateTaskModal
         isOpen={showCreateGeneral}

@@ -53,6 +53,12 @@ public class UserService {
         this.notificationRepository = notificationRepository;
     }
 
+    // Optional so unit tests that build UserService directly do not need the chat module.
+    private ChatService chatService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setChatService(ChatService chatService) { this.chatService = chatService; }
+
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll()
                 .stream()
@@ -207,6 +213,7 @@ public class UserService {
 
         activationTokenRepository.deleteByUser(user);
         notificationRepository.deleteByRecipientId(id);
+        if (chatService != null) chatService.removeUser(id);
         userRepository.delete(user);
         log.info("ADMIN action: disabled user permanently deleted id={} email={}", id, user.getEmail());
     }
