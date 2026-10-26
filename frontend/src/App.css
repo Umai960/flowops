@@ -1599,12 +1599,8 @@
 .danger-button { border:1px solid #efd0d4; border-radius:8px; padding:10px 14px; background:#fff4f5; color:#b44855; font-weight:700; cursor:pointer; }
 @media(max-width:760px) { .planning-calendar-scroll { padding:10px; }.planning-calendar-scroll .fc-toolbar { flex-wrap:wrap; gap:8px; }.planning-calendar-scroll .fc-toolbar-title { font-size:17px; }.planning-calendar-scroll .fc-daygrid-day { min-height:118px; }.planning-calendar-scroll .fc-toolbar-chunk { max-width:100%; }.planning-calendar-scroll .fc-button { padding:5px 8px; font-size:12px; } }
 
-/* Chat inside tasks and planning items */
+/* Chat inside interdepartment requests */
 .nav-badge { position:absolute; top:5px; left:28px; min-width:17px; height:17px; padding:0 5px; border-radius:999px; background:var(--color-danger); color:#fff; font-size:10px; font-weight:800; line-height:17px; text-align:center; }
-.modal-card.modal-card-chat { width:min(100%, 640px); }
-.modal-tabs { display:flex; gap:4px; margin:0 0 16px; padding:4px; border-radius:10px; background:var(--color-surface-muted); border:1px solid var(--color-border); }
-.modal-tabs button { flex:1; padding:8px 12px; border:0; border-radius:8px; background:transparent; color:var(--color-text-muted); font-weight:700; cursor:pointer; }
-.modal-tabs button.is-active { background:#fff; color:var(--color-primary); box-shadow:var(--shadow-sm); }
 .chat-panel { display:flex; flex-direction:column; gap:10px; min-height:0; color:var(--color-text); }
 .chat-panel-title h2 { margin:0; font-size:19px; }
 .chat-panel-title span, .chat-muted { color:var(--color-text-muted); font-size:13px; }
@@ -1667,5 +1663,6 @@
   .chat-thread-list { max-height:260px; }
   .chat-message { max-width:92%; }
 }
-.task-chat-button { display:inline-flex; align-items:center; gap:4px; margin-top:8px; padding:4px 10px; border:1px solid var(--color-border); border-radius:999px; background:#fff; color:var(--color-primary); font-size:12px; font-weight:700; cursor:pointer; }
-.task-chat-button:hover { border-color:var(--color-primary); background:var(--color-primary-soft); }
+.request-chat-toggle { margin-top:12px; }
+.request-chat { margin-top:12px; padding-top:12px; border-top:1px solid var(--color-border); }
+.request-chat .chat-messages { height:min(45vh, 360px); }

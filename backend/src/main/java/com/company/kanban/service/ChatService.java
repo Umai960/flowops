@@ -15,9 +15,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * Chat (comment space) inside each task and planning item. Anyone who can open the task or
- * planning item can read and post; people from other departments can be added to a chat and
- * then see that chat only. Administrators can read every chat.
+ * Chat (comment space) inside each interdepartment request. The requester, the handler and
+ * everyone in the requesting and receiving departments can read and post; other people can be
+ * added to a chat and then see that chat only. Administrators can read every chat.
  */
 @Service
 public class ChatService {
@@ -37,26 +37,24 @@ public class ChatService {
             Map.entry("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
             Map.entry("csv", "text/csv"), Map.entry("txt", "text/plain"), Map.entry("zip", "application/zip"));
 
-    private record Subject(ChatSubjectType type, Long id, String title, Department department, List<User> watchers) {}
+    private record Subject(ChatSubjectType type, Long id, String title, Department department, Department otherDepartment, List<User> watchers) {}
 
     private final ChatThreadRepository threads;
     private final ChatParticipantRepository participants;
     private final ChatMessageRepository messages;
     private final ChatAttachmentRepository attachments;
-    private final TaskRepository taskRepository;
-    private final PpcPlanningItemRepository planningRepository;
+    private final InterdepartmentRequestRepository requestRepository;
     private final UserRepository userRepository;
     private final AuthorizationService authorizationService;
     private final NotificationService notificationService;
     private final ApplicationEventPublisher events;
 
     public ChatService(ChatThreadRepository threads, ChatParticipantRepository participants, ChatMessageRepository messages,
-                       ChatAttachmentRepository attachments, TaskRepository taskRepository,
-                       PpcPlanningItemRepository planningRepository, UserRepository userRepository,
+                       ChatAttachmentRepository attachments, InterdepartmentRequestRepository requestRepository, UserRepository userRepository,
                        AuthorizationService authorizationService, NotificationService notificationService,
                        ApplicationEventPublisher events) {
         this.threads = threads; this.participants = participants; this.messages = messages; this.attachments = attachments;
-        this.taskRepository = taskRepository; this.planningRepository = planningRepository; this.userRepository = userRepository;
+        this.requestRepository = requestRepository; this.userRepository = userRepository;
         this.authorizationService = authorizationService; this.notificationService = notificationService; this.events = events;
     }
 
@@ -64,13 +62,13 @@ public class ChatService {
     public ChatView view(ChatSubjectType type, Long subjectId, Long beforeId, User user) {
         Subject subject = readableSubject(type, subjectId, user);
         ChatThread thread = threads.findBySubjectTypeAndSubjectId(type, subjectId).orElse(null);
-        if (thread == null) return new ChatView(type, subjectId, subject.title(), departmentName(subject.department()), List.of(), List.of(), false);
+        if (thread == null) return new ChatView(type, subjectId, subject.title(), departmentLabel(subject.department(), subject.otherDepartment()), List.of(), List.of(), false);
         refresh(thread, subject);
         List<ChatMessage> page = messages.findPageBefore(thread.getId(), beforeId == null ? Long.MAX_VALUE : beforeId, PageRequest.of(0, PAGE_SIZE + 1));
         boolean hasMore = page.size() > PAGE_SIZE;
         List<ChatMessageResponse> ordered = new ArrayList<>(page.stream().limit(PAGE_SIZE).map(this::toResponse).toList());
         Collections.reverse(ordered);
-        return new ChatView(type, subjectId, thread.getTitle(), departmentName(thread.getDepartment()), people(thread), ordered, hasMore);
+        return new ChatView(type, subjectId, thread.getTitle(), departmentLabel(thread.getDepartment(), thread.getOtherDepartment()), people(thread), ordered, hasMore);
     }
 
     @Transactional(readOnly = true)
@@ -119,7 +117,7 @@ public class ChatService {
     public void deleteMessage(Long messageId, User user) {
         ChatMessage message = messages.findById(messageId).orElseThrow(() -> notFound("Message not found"));
         ChatThread thread = message.getThread();
-        if (!canRead(user, thread.getDepartment(), thread)) throw notFound("Message not found");
+        if (!canRead(user, thread.getDepartment(), thread.getOtherDepartment(), thread)) throw notFound("Message not found");
         if (!authorizationService.isAdmin(user) && !message.getSender().getId().equals(user.getId()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete your own messages");
         if (message.isDeleted()) return;
@@ -135,7 +133,7 @@ public class ChatService {
     public AttachmentDownload attachment(Long messageId, User user) {
         ChatMessage message = messages.findById(messageId).orElseThrow(() -> notFound("File not found"));
         ChatThread thread = message.getThread();
-        if (!canRead(user, thread.getDepartment(), thread) || !message.hasAttachment()) throw notFound("File not found");
+        if (!canRead(user, thread.getDepartment(), thread.getOtherDepartment(), thread) || !message.hasAttachment()) throw notFound("File not found");
         ChatAttachment attachment = attachments.findByMessageId(messageId).orElseThrow(() -> notFound("File not found"));
         return new AttachmentDownload(message.getAttachmentName(), message.getAttachmentContentType(), attachment.getData());
     }
@@ -172,8 +170,10 @@ public class ChatService {
         else if (authorizationService.isAdmin(user)) found = threads.findAllActive(limit);
         else found = threads.findVisibleTo(user.getId(), user.getDepartment() == null ? -1L : user.getDepartment().getId(), limit);
         Map<Long, Long> unread = unreadByThread(user);
-        return found.stream().map(thread -> new ChatThreadSummary(thread.getSubjectType(), thread.getSubjectId(), thread.getTitle(),
-                departmentName(thread.getDepartment()), thread.getLastMessagePreview(), thread.getLastMessageAt(),
+        // Chats left from 1.3.0 tasks and planning items can no longer be opened, so they are not listed.
+        return found.stream().filter(thread -> thread.getSubjectType() == ChatSubjectType.REQUEST)
+                .map(thread -> new ChatThreadSummary(thread.getSubjectType(), thread.getSubjectId(), thread.getTitle(),
+                departmentLabel(thread.getDepartment(), thread.getOtherDepartment()), thread.getLastMessagePreview(), thread.getLastMessageAt(),
                 unread.getOrDefault(thread.getId(), 0L))).toList();
     }
 
@@ -190,7 +190,7 @@ public class ChatService {
                 .map(this::person).toList();
     }
 
-    /** Called when a task or planning item is deleted. */
+    /** Called when a task or planning item is deleted, to remove any chat left from 1.3.0. */
     @Transactional
     public void deleteForSubject(ChatSubjectType type, Long subjectId) {
         threads.findBySubjectTypeAndSubjectId(type, subjectId).ifPresent(thread -> deleteThreads(List.of(thread.getId())));
@@ -226,28 +226,33 @@ public class ChatService {
     }
 
     private Subject readableSubject(ChatSubjectType type, Long subjectId, User user) {
-        Subject subject = switch (type) {
-            case TASK -> taskRepository.findById(subjectId).map(task -> new Subject(type, subjectId, task.getTitle(), task.getDepartment(),
-                    watchers(task.getAssignee(), task.getCreatedBy()))).orElse(null);
-            case PLANNING -> planningRepository.findById(subjectId).map(item -> new Subject(type, subjectId, item.getTitle(), item.getDepartment(),
-                    watchers(item.getCreatedBy()))).orElse(null);
-        };
+        Subject subject = type != ChatSubjectType.REQUEST ? null : requestRepository.findById(subjectId).map(request -> new Subject(type, subjectId,
+                request.getTitle(), request.getRequestingDepartment(), request.getTargetDepartment(), requestWatchers(request))).orElse(null);
         // A chat the user may not read is reported as missing so its existence is not revealed.
-        if (subject == null || !canRead(user, subject.department(), threads.findBySubjectTypeAndSubjectId(type, subjectId).orElse(null)))
+        if (subject == null || !canRead(user, subject.department(), subject.otherDepartment(), threads.findBySubjectTypeAndSubjectId(type, subjectId).orElse(null)))
             throw notFound("Chat not found");
         return subject;
     }
 
-    private boolean canRead(User user, Department department, ChatThread thread) {
+    // The requester and the handler follow the chat; until someone handles it, the receiving department's managers do.
+    private List<User> requestWatchers(InterdepartmentRequest request) {
+        List<User> people = new ArrayList<>(List.of(request.getCreatedBy()));
+        if (request.getAssignedTo() != null) people.add(request.getAssignedTo());
+        else people.addAll(userRepository.findByDepartmentIdAndRole(request.getTargetDepartment().getId(), Role.MANAGER));
+        return watchers(people.toArray(User[]::new));
+    }
+
+    private boolean canRead(User user, Department department, Department otherDepartment, ChatThread thread) {
         if (authorizationService.isAdmin(user)) return true;
         if (department != null && authorizationService.canAccessDepartment(user, department.getId())) return true;
+        if (otherDepartment != null && authorizationService.canAccessDepartment(user, otherDepartment.getId())) return true;
         return thread != null && thread.getId() != null && participants.existsByThreadIdAndUserId(thread.getId(), user.getId());
     }
 
     private ChatThread threadFor(Subject subject) {
         ChatThread thread = threads.findBySubjectTypeAndSubjectId(subject.type(), subject.id()).orElse(null);
         if (thread != null) { refresh(thread, subject); return thread; }
-        thread = threads.save(new ChatThread(subject.type(), subject.id(), truncate(subject.title(), 200), subject.department()));
+        thread = threads.save(new ChatThread(subject.type(), subject.id(), truncate(subject.title(), 200), subject.department(), subject.otherDepartment()));
         for (User watcher : subject.watchers()) follow(thread, watcher);
         return thread;
     }
@@ -257,6 +262,8 @@ public class ChatService {
         if (!Objects.equals(thread.getTitle(), title)) thread.setTitle(title);
         if (subject.department() != null && (thread.getDepartment() == null || !thread.getDepartment().getId().equals(subject.department().getId())))
             thread.setDepartment(subject.department());
+        if (subject.otherDepartment() != null && (thread.getOtherDepartment() == null || !thread.getOtherDepartment().getId().equals(subject.otherDepartment().getId())))
+            thread.setOtherDepartment(subject.otherDepartment());
     }
 
     private boolean follow(ChatThread thread, User user) {
@@ -274,8 +281,10 @@ public class ChatService {
     private void publish(String kind, ChatThread thread, ChatMessageResponse message, List<User> followers) {
         Set<Long> ids = new HashSet<>();
         followers.forEach(follower -> ids.add(follower.getId()));
-        events.publishEvent(new ChatEventBroker.Delivery(new ChatEvent(kind, thread.getSubjectType(), thread.getSubjectId(), message),
-                thread.getDepartment() == null ? null : thread.getDepartment().getId(), ids));
+        Set<Long> departmentIds = new HashSet<>();
+        if (thread.getDepartment() != null) departmentIds.add(thread.getDepartment().getId());
+        if (thread.getOtherDepartment() != null) departmentIds.add(thread.getOtherDepartment().getId());
+        events.publishEvent(new ChatEventBroker.Delivery(new ChatEvent(kind, thread.getSubjectType(), thread.getSubjectId(), message), departmentIds, ids));
     }
 
     private List<ChatPerson> people(ChatThread thread) {
@@ -335,6 +344,11 @@ public class ChatService {
     }
 
     private static String departmentName(Department department) { return department == null ? null : department.getName(); }
+
+    private static String departmentLabel(Department department, Department otherDepartment) {
+        if (otherDepartment == null || department == null) return departmentName(department == null ? otherDepartment : department);
+        return department.getName() + " → " + otherDepartment.getName();
+    }
     private static ResponseStatusException notFound(String message) { return new ResponseStatusException(HttpStatus.NOT_FOUND, message); }
     private static ResponseStatusException badRequest(String message) { return new ResponseStatusException(HttpStatus.BAD_REQUEST, message); }
 }

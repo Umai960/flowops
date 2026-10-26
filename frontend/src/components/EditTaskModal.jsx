@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api/apiFetch";
 import RddTaskActions from "./RddTaskActions";
-import ChatPanel from "./ChatPanel";
 
 const API_BASE_URL = "";
 
@@ -18,7 +17,6 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
   const [checkpoints, setCheckpoints] = useState([]);
   const [checkpointTitle, setCheckpointTitle] = useState("");
   const isRddTask = task?.departmentName?.toUpperCase() === "RDD";
-  const [tab, setTab] = useState("details");
 
   useEffect(() => {
     if (!task || !isRddTask) { setCheckpoints([]); return; }
@@ -82,7 +80,7 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <div
-        className={`modal-card ${tab === "chat" ? "modal-card-chat" : ""}`}
+        className="modal-card"
         onMouseDown={(event) => event.stopPropagation()}
       >
           <div className="modal-header">
@@ -103,12 +101,6 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
           </button>
         </div>
 
-        <div className="modal-tabs" role="tablist">
-          <button type="button" role="tab" aria-selected={tab === "details"} className={tab === "details" ? "is-active" : ""} onClick={() => setTab("details")}>Details</button>
-          <button type="button" role="tab" aria-selected={tab === "chat"} className={tab === "chat" ? "is-active" : ""} onClick={() => setTab("chat")}>Chat</button>
-        </div>
-
-        {tab === "chat" ? <ChatPanel subjectType="task" subjectId={task.id} user={user} /> : (
         <form className="create-task-form" onSubmit={handleSubmit}>
           <label htmlFor="edit-task-title">
             Title <span className="required-marker">*</span>
@@ -214,7 +206,6 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
             </div>
           </div>
         </form>
-        )}
       </div>
     </div>
   );

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,7 +21,7 @@ public class ChatEventBroker {
     private static final long CONNECTION_TIMEOUT_MS = 15 * 60 * 1000L;
 
     /** Published by ChatService; delivered only after the database transaction commits. */
-    public record Delivery(ChatEvent event, Long departmentId, Set<Long> participantIds) {}
+    public record Delivery(ChatEvent event, Set<Long> departmentIds, Set<Long> participantIds) {}
 
     private record Listener(Long userId, boolean admin, Long departmentId) {}
 
@@ -63,7 +62,7 @@ public class ChatEventBroker {
     private static boolean canReceive(Listener listener, Delivery delivery) {
         return listener.admin()
                 || delivery.participantIds().contains(listener.userId())
-                || (delivery.departmentId() != null && Objects.equals(delivery.departmentId(), listener.departmentId()));
+                || (listener.departmentId() != null && delivery.departmentIds().contains(listener.departmentId()));
     }
 
     private void send(SseEmitter emitter, SseEmitter.SseEventBuilder event) {
