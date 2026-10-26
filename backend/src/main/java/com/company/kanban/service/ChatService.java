@@ -322,6 +322,9 @@ public class ChatService {
         return name;
     }
 
+    /** The content type for an allowed upload, or null when this kind of file is not accepted. */
+    static String allowedContentType(String fileName) { return ALLOWED_FILE_TYPES.get(extension(fileName)); }
+
     static String extension(String fileName) {
         int dot = fileName.lastIndexOf('.');
         return dot < 0 ? "" : fileName.substring(dot + 1).toLowerCase(Locale.ROOT);

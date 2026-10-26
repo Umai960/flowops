@@ -1,4 +1,4 @@
-// Chat inside tasks and planning items. Uploads and the live stream need the token
+// Chat inside interdepartment requests. Uploads and the live stream need the token
 // without the JSON Content-Type that apiFetch adds, so they use authorizedFetch.
 
 export const CHAT_MAX_FILE_BYTES = 10 * 1024 * 1024;

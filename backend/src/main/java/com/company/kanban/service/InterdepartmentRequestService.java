@@ -6,7 +6,9 @@ import com.company.kanban.repository.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import org.springframework.data.domain.Page;
@@ -14,8 +16,8 @@ import org.springframework.data.domain.Pageable;
 
 @Service
 public class InterdepartmentRequestService {
-    private final InterdepartmentRequestRepository requests; private final DepartmentRepository departments; private final UserRepository users; private final NotificationService notifications;
-    public InterdepartmentRequestService(InterdepartmentRequestRepository requests, DepartmentRepository departments, UserRepository users, NotificationService notifications){this.requests=requests;this.departments=departments;this.users=users;this.notifications=notifications;}
+    private final InterdepartmentRequestRepository requests; private final DepartmentRepository departments; private final UserRepository users; private final NotificationService notifications; private final RequestAttachmentRepository attachments;
+    public InterdepartmentRequestService(InterdepartmentRequestRepository requests, DepartmentRepository departments, UserRepository users, NotificationService notifications, RequestAttachmentRepository attachments){this.requests=requests;this.departments=departments;this.users=users;this.notifications=notifications;this.attachments=attachments;}
     @Transactional
     public InterdepartmentRequestResponse create(CreateInterdepartmentRequest input, User current){
         if (current == null || current.getDepartment()==null || (current.getRole()!=Role.ADMIN && !"RDD".equalsIgnoreCase(current.getDepartment().getName()))) throw forbidden();
@@ -35,7 +37,9 @@ public class InterdepartmentRequestService {
                 .toList();
         int from = Math.min((int) pageable.getOffset(), filtered.size());
         int to = Math.min(from + pageable.getPageSize(), filtered.size());
-        return new org.springframework.data.domain.PageImpl<>(filtered.subList(from, to), pageable, filtered.size()).map(this::toResponse);
+        List<InterdepartmentRequest> pageItems = filtered.subList(from, to);
+        Map<Long, List<InterdepartmentRequestResponse.Attachment>> files = attachmentsFor(pageItems.stream().map(InterdepartmentRequest::getId).toList());
+        return new org.springframework.data.domain.PageImpl<>(pageItems, pageable, filtered.size()).map(r -> toResponse(r, files.getOrDefault(r.getId(), List.of())));
     }
     @Transactional
     public InterdepartmentRequestResponse update(Long id, UpdateInterdepartmentRequestStatus input, User current){
@@ -53,6 +57,49 @@ public class InterdepartmentRequestService {
         if(!terminal(r)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Only completed or rejected requests can be archived");
         r.setArchivedAt(LocalDateTime.now()); return toResponse(requests.save(r));
     }
+
+    public record AttachmentDownload(String name, String contentType, byte[] data) {}
+
+    /** Anyone who can see an open request (both departments and admins) can add files to it. */
+    @Transactional
+    public InterdepartmentRequestResponse addAttachment(Long id, MultipartFile file, User current){
+        InterdepartmentRequest r=load(id); requireVisible(current,r);
+        if(terminal(r)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Files can only be added while the request is open");
+        if(file==null || file.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Choose a file to attach");
+        if(file.getSize()>RequestAttachment.MAX_BYTES) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,"File is larger than 10 MB");
+        if(attachments.countByRequestId(id)>=RequestAttachment.MAX_PER_REQUEST) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"A request can have at most "+RequestAttachment.MAX_PER_REQUEST+" files");
+        String name=ChatService.cleanFileName(file.getOriginalFilename());
+        String type=ChatService.allowedContentType(name);
+        if(type==null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"This file type is not allowed. Use images, PDF, Word, Excel, PowerPoint, CSV, TXT or ZIP");
+        byte[] data; try{data=file.getBytes();}catch(IOException e){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"The file could not be read");}
+        attachments.save(new RequestAttachment(r,name,type,data,current));
+        return toResponse(r);
+    }
+    @Transactional(readOnly=true)
+    public AttachmentDownload attachment(Long id, Long attachmentId, User current){
+        InterdepartmentRequest r=load(id); requireVisible(current,r);
+        RequestAttachment a=loadAttachment(r,attachmentId);
+        return new AttachmentDownload(a.getFileName(),a.getContentType(),a.getData());
+    }
+    /** The person who uploaded a file, or an admin, can remove it while the request is open. */
+    @Transactional
+    public InterdepartmentRequestResponse deleteAttachment(Long id, Long attachmentId, User current){
+        InterdepartmentRequest r=load(id); requireVisible(current,r);
+        RequestAttachment a=loadAttachment(r,attachmentId);
+        if(current.getRole()!=Role.ADMIN && !Objects.equals(a.getUploadedById(),current.getId())) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Only the person who uploaded this file can remove it");
+        if(terminal(r) && current.getRole()!=Role.ADMIN) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Files cannot be removed after the request is closed");
+        attachments.delete(a);
+        return toResponse(r);
+    }
+    private RequestAttachment loadAttachment(InterdepartmentRequest r, Long attachmentId){
+        return attachments.findById(attachmentId).filter(a->Objects.equals(a.getRequest().getId(),r.getId())).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"File not found"));
+    }
+    private Map<Long, List<InterdepartmentRequestResponse.Attachment>> attachmentsFor(Collection<Long> requestIds){
+        if(requestIds.isEmpty()) return Map.of();
+        Map<Long, List<InterdepartmentRequestResponse.Attachment>> result=new HashMap<>();
+        for(RequestAttachmentRepository.Row row: attachments.findInfoByRequestIds(requestIds)) result.computeIfAbsent(row.requestId(),k->new ArrayList<>()).add(row.toResponse());
+        return result;
+    }
     private List<InterdepartmentRequest> visible(User u){ if(u==null) return List.of(); if(u.getRole()==Role.ADMIN) return requests.findAll(); if(u.getDepartment()==null)return List.of(); if("PPC".equalsIgnoreCase(u.getDepartment().getName())) return requests.findByTargetDepartmentIdOrderByCreatedAtDesc(u.getDepartment().getId()).stream().filter(r->r.getAssignedTo()==null || Objects.equals(r.getAssignedTo().getId(),u.getId()) || u.getRole()==Role.MANAGER).toList(); if("RDD".equalsIgnoreCase(u.getDepartment().getName())) return requests.findByRequestingDepartmentIdOrderByCreatedAtDesc(u.getDepartment().getId()); return requests.findByCreatedByIdOrderByCreatedAtDesc(u.getId()); }
     private InterdepartmentRequest load(Long id){return requests.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Request not found"));}
     private void requireVisible(User u, InterdepartmentRequest r){if(u==null||u.getRole()!=Role.ADMIN && !Objects.equals(u.getDepartment().getId(),r.getRequestingDepartment().getId()) && !Objects.equals(u.getDepartment().getId(),r.getTargetDepartment().getId())) throw forbidden(); if("PPC".equalsIgnoreCase(r.getRequestingDepartment().getName()) && u.getRole()!=Role.ADMIN && Objects.equals(u.getDepartment().getId(),r.getRequestingDepartment().getId()) && !Objects.equals(r.getCreatedBy().getId(),u.getId())) throw forbidden();}
@@ -68,5 +115,6 @@ public class InterdepartmentRequestService {
     private boolean terminal(InterdepartmentRequest request){return request.getStatus()==InterdepartmentRequestStatus.COMPLETED || request.getStatus()==InterdepartmentRequestStatus.REJECTED;}
     private void history(InterdepartmentRequest r, InterdepartmentRequestStatus from, InterdepartmentRequestStatus to, User actor,String note){r.getStatusHistory().add(new InterdepartmentRequestStatusHistory(r,from,to,actor,note)); requests.save(r);}
     private ResponseStatusException forbidden(){return new ResponseStatusException(HttpStatus.FORBIDDEN,"You do not have permission to access this request");}
-    private InterdepartmentRequestResponse toResponse(InterdepartmentRequest r){return new InterdepartmentRequestResponse(r.getId(),r.getRequestingDepartment().getName(),r.getTargetDepartment().getName(),r.getCreatedBy().getId(),r.getCreatedBy().getName(),r.getAssignedTo()==null?null:r.getAssignedTo().getId(),r.getAssignedTo()==null?null:r.getAssignedTo().getName(),r.getTitle(),r.getDescription(),r.getPriority(),r.getNeededBy(),r.getStatus(),r.getCreatedAt(),r.getUpdatedAt(),r.getAcknowledgedAt(),r.getCompletedAt(),r.getRejectionReason(),r.getLinkedTaskId(),r.getArchivedAt(),r.getStatusHistory().stream().map(h->new InterdepartmentRequestResponse.StatusHistory(h.getFromStatus(),h.getToStatus(),h.getChangedBy().getId(),h.getChangedBy().getName(),h.getChangedAt(),h.getNote())).toList());}
+    private InterdepartmentRequestResponse toResponse(InterdepartmentRequest r){return toResponse(r, attachmentsFor(List.of(r.getId())).getOrDefault(r.getId(), List.of()));}
+    private InterdepartmentRequestResponse toResponse(InterdepartmentRequest r, List<InterdepartmentRequestResponse.Attachment> files){return new InterdepartmentRequestResponse(r.getId(),r.getRequestingDepartment().getName(),r.getTargetDepartment().getName(),r.getCreatedBy().getId(),r.getCreatedBy().getName(),r.getAssignedTo()==null?null:r.getAssignedTo().getId(),r.getAssignedTo()==null?null:r.getAssignedTo().getName(),r.getTitle(),r.getDescription(),r.getPriority(),r.getNeededBy(),r.getStatus(),r.getCreatedAt(),r.getUpdatedAt(),r.getAcknowledgedAt(),r.getCompletedAt(),r.getRejectionReason(),r.getLinkedTaskId(),r.getArchivedAt(),r.getStatusHistory().stream().map(h->new InterdepartmentRequestResponse.StatusHistory(h.getFromStatus(),h.getToStatus(),h.getChangedBy().getId(),h.getChangedBy().getName(),h.getChangedAt(),h.getNote())).toList(),files);}
 }
