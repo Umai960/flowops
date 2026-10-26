@@ -57,7 +57,7 @@ public class PpcDashboardService {
 
         List<RawMaterialArrival> openMaterials = materials.findByActualArrivalDateIsNull();
         PpcDashboardResponse.RawMaterialSummary raw = rawSummary(openMaterials, today);
-        List<PpcDashboardResponse.PlanningPreview> upcoming = planning.findUpcoming(today, PageRequest.of(0, 5)).stream()
+        List<PpcDashboardResponse.PlanningPreview> upcoming = planning.findUpcoming("PPC", today, PageRequest.of(0, 5)).stream()
                 .map(x -> new PpcDashboardResponse.PlanningPreview(x.getId(), x.getTitle(), x.getStartDate(), x.getEndDate(), x.getPriority(), x.getStatus())).toList();
 
         if (current.getRole() == Role.STAFF) {

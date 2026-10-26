@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -20,8 +19,9 @@ public class PpcPlanningController {
     public PpcPlanningController(PpcPlanningService service) { this.service = service; }
 
     @GetMapping
-    public List<PpcPlanningItemResponse> get(@RequestParam int year, @RequestParam int month, @AuthenticationPrincipal User user) {
-        return service.getItems(year, month, user);
+    public List<PpcPlanningItemResponse> get(@RequestParam int year, @RequestParam int month, @RequestParam(required = false) Long departmentId,
+                                             @AuthenticationPrincipal User user) {
+        return service.getItems(year, month, departmentId, user);
     }
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

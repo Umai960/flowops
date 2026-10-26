@@ -1555,6 +1555,8 @@
 
 .sidebar-section-label--nested { margin-top: 18px; }
 .ppc-planning-page { width: 100%; max-width: 1760px; margin: 0 auto; }
+.planning-department-picker { display:inline-flex; align-items:center; gap:8px; margin-top:10px; font-weight:600; }
+.planning-department-picker select { min-height:36px; padding:6px 10px; border:1px solid var(--color-border); border-radius:8px; background:var(--color-surface); }
 .planning-calendar-card { position: relative; min-width: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); box-shadow: var(--shadow-sm); }
 .planning-calendar-scroll { min-width: 0; box-sizing: border-box; overflow: visible; padding: 16px; }
 .planning-calendar-scroll .fc { width:100%; min-width:0; }

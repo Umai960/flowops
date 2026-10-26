@@ -805,8 +805,8 @@ function App() {
         <DataManagementPage />
       ) : activeView === "client-access" && isAdmin ? (
         <ClientAccessPage />
-      ) : activeView === "ppc-planning" && (isAdmin || user?.departmentName?.toUpperCase() === "PPC") ? (
-        <PpcPlanningPage />
+      ) : activeView === "ppc-planning" ? (
+        <PpcPlanningPage user={user} departments={departments} />
       ) : activeView === "ppc-arrivals" && (isAdmin || user?.departmentName?.toUpperCase() === "PPC") ? (
         <RawMaterialArrivalsPage />
       ) : activeView === "reviews" ? (

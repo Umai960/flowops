@@ -41,6 +41,11 @@ public class PpcPlanningItem {
     @JoinColumn(name = "created_by_id", nullable = false)
     private User createdBy;
 
+    // Each department keeps its own calendar. Nullable only so existing rows can be backfilled by PlanningDepartmentMigration.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -51,6 +56,12 @@ public class PpcPlanningItem {
 
     public PpcPlanningItem(String title, String description, LocalDate startDate,
                             LocalDate endDate, String priority, String status, User createdBy) {
+        this(title, description, startDate, endDate, priority, status, createdBy, createdBy.getDepartment());
+    }
+
+    public PpcPlanningItem(String title, String description, LocalDate startDate,
+                            LocalDate endDate, String priority, String status, User createdBy, Department department) {
+        this.department = department;
         this.title = title;
         this.description = description;
         this.startDate = startDate;
@@ -88,6 +99,7 @@ public class PpcPlanningItem {
     public Long getLinkedTaskId() { return linkedTaskId; }
     public void setLinkedTaskId(Long linkedTaskId) { this.linkedTaskId = linkedTaskId; }
     public User getCreatedBy() { return createdBy; }
+    public Department getDepartment() { return department; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

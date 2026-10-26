@@ -8,6 +8,12 @@ test("PPC staff navigation follows operational priority order", () => {
 test("PPC manager navigation puts team and reviews after project work", () => {
   assert.deepEqual(getNavigationItems({ role: "MANAGER", departmentName: "PPC" }).map((item) => item[0]), ["dashboard", "personal", "project", "ppc-arrivals", "ppc-planning", "requests", "completed", "staff", "reviews", "report", "desktop-notifications"]);
 });
-test("non-PPC staff does not see PPC modules", () => {
-  assert.equal(getNavigationItems({ role: "STAFF", departmentName: "RDD" }).some((item) => item[0].startsWith("ppc-")), false);
+test("non-PPC staff gets their own Planning calendar but not other PPC modules", () => {
+  const ids = getNavigationItems({ role: "STAFF", departmentName: "RDD" }).map((item) => item[0]);
+  assert.equal(ids.includes("ppc-planning"), true);
+  assert.equal(ids.includes("ppc-arrivals"), false);
+});
+test("managers and admins of any department see Planning", () => {
+  assert.equal(getNavigationItems({ role: "MANAGER", departmentName: "PROD" }).some((item) => item[0] === "ppc-planning"), true);
+  assert.equal(getNavigationItems({ role: "ADMIN", departmentName: "ADMIN" }).some((item) => item[0] === "ppc-planning"), true);
 });
