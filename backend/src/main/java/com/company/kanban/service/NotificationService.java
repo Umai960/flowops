@@ -9,12 +9,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
 @Service
 public class NotificationService {
+    static final int CHAT_ALERT_QUIET_MINUTES = 5;
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
 
@@ -133,6 +135,21 @@ public class NotificationService {
         };
         if (type != null) notifyRequest(request.getCreatedBy(), actor, type, "Interdepartment request updated",
                 request.getTitle() + " is now " + request.getStatus().name().replace('_', ' ').toLowerCase() + ".", request.getId());
+    }
+
+    public void notifyChatMessage(User recipient, User actor, String title, String message, String destination) {
+        if (recipient == null || actor == null || recipient.getStatus() != AccountStatus.ACTIVE || recipient.getId().equals(actor.getId())) return;
+        // A busy chat should not flood the bell and desktop: while an alert for this chat from the
+        // last few minutes is still unread, further messages do not add another one.
+        if (notificationRepository.existsByRecipientIdAndTypeAndDestinationAndReadFalseAndClearedAtIsNullAndCreatedAtAfter(
+                recipient.getId(), NotificationType.CHAT_MESSAGE, destination, LocalDateTime.now().minusMinutes(CHAT_ALERT_QUIET_MINUTES))) return;
+        Notification notification = new Notification(recipient, NotificationType.CHAT_MESSAGE, limit(title, 120), limit(message, 700), null, null, null);
+        notification.setDestination(destination);
+        notificationRepository.save(notification);
+    }
+
+    private static String limit(String value, int max) {
+        return value.length() <= max ? value : value.substring(0, max - 1) + "…";
     }
 
     private void notifyRequest(User recipient, User actor, NotificationType type, String title, String message, Long requestId) {

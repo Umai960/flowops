@@ -2,6 +2,7 @@ package com.company.kanban.config;
 
 import com.company.kanban.security.JwtAuthenticationFilter;
 import com.company.kanban.security.DeviceAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,6 +52,7 @@ public class SecurityConfig {
             "/reports",
             "/reports/**",
             "/ppc/**",
+            "/chat",
             "/history",
             "/completed",
             "/settings/**",
@@ -100,6 +102,9 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth ->
                         auth
+                                // Live chat streams finish on an async dispatch; the original request was already authorized.
+                                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
+
                                 .requestMatchers(
                                         PathPatternRequestMatcher
                                                 .withDefaults()

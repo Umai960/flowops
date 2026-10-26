@@ -23,6 +23,7 @@ public class SpaFallbackController {
             "/admin/settings/client-access",
             "/settings/desktop-notifications",
             "/ppc/planning",
+            "/chat",
             "/ppc/raw-material-arrivals",
             "/activate",
             "/manager",

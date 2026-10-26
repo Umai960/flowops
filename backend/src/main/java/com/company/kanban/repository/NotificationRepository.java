@@ -17,6 +17,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     List<Notification> findByRecipientIdAndReadFalseAndClearedAtIsNull(Long recipientId);
     List<Notification> findByRecipientIdAndClearedAtIsNull(Long recipientId);
     void deleteByRecipientId(Long recipientId);
+    boolean existsByRecipientIdAndTypeAndDestinationAndReadFalseAndClearedAtIsNullAndCreatedAtAfter(
+            Long recipientId, com.company.kanban.entity.NotificationType type, String destination, LocalDateTime after);
     List<Notification> findByRecipientIdAndIdGreaterThanOrderByIdAsc(Long recipientId, Long after, Pageable pageable);
     @Query("select max(n.id) from Notification n where n.recipient.id = :recipientId")
     Optional<Long> findMaxIdByRecipientId(@Param("recipientId") Long recipientId);

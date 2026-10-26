@@ -60,6 +60,12 @@ public class TaskService {
         this.doneVisibleDays = doneVisibleDays;
     }
 
+    // Optional so unit tests that build TaskService directly do not need the chat module.
+    private ChatService chatService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setChatService(ChatService chatService) { this.chatService = chatService; }
+
     TaskService(TaskRepository taskRepository, KanbanColumnRepository kanbanColumnRepository,
                 UserRepository userRepository, DepartmentRepository departmentRepository,
                 AuthorizationService authorizationService, NotificationService notificationService) {
@@ -511,6 +517,7 @@ public class TaskService {
 
         Long columnId = task.getColumn() == null ? null : task.getColumn().getId();
 
+        if (chatService != null) chatService.deleteForSubject(com.company.kanban.entity.ChatSubjectType.TASK, taskId);
         taskRepository.delete(task);
 
         taskRepository.flush();
