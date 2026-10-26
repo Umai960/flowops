@@ -68,7 +68,7 @@ function AddPeople({ subjectType, subjectId, participants, onAdded }) {
   </div>;
 }
 
-/** Chat for one task or planning item. subjectType is "task" or "planning". */
+/** Chat for one interdepartment request (subjectType "request"). */
 export default function ChatPanel({ subjectType, subjectId, user, showTitle = false }) {
   const { subscribe, refreshUnread } = useChat();
   const [view, setView] = useState(null);
@@ -176,7 +176,7 @@ export default function ChatPanel({ subjectType, subjectId, user, showTitle = fa
 
   const participants = view?.participants || [];
   return <section className="chat-panel" aria-label="Chat">
-    {showTitle && view && <header className="chat-panel-title"><h2>{view.title}</h2><span>{subjectType === "task" ? "Task" : "Planning"}{view.departmentName ? ` · ${view.departmentName}` : ""}</span></header>}
+    {showTitle && view && <header className="chat-panel-title"><h2>{view.title}</h2><span>Request{view.departmentName ? ` · ${view.departmentName}` : ""}</span></header>}
     <div className="chat-people">
       <span className="chat-muted">{participants.length ? `In this chat: ${participants.map((person) => person.name).join(", ")}` : "No messages yet. Start the conversation."}</span>
       {view && <AddPeople subjectType={subjectType} subjectId={subjectId} participants={participants} onAdded={(people) => setView((current) => ({ ...current, participants: people }))} />}

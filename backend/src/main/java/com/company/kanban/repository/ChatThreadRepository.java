@@ -17,7 +17,7 @@ public interface ChatThreadRepository extends JpaRepository<ChatThread, Long> {
     @Query("select t from ChatThread t where t.lastMessageAt is not null and exists (select p.id from ChatParticipant p where p.thread = t and p.user.id = :userId) order by t.lastMessageAt desc")
     List<ChatThread> findFollowedBy(@Param("userId") Long userId, Pageable pageable);
 
-    @Query("select t from ChatThread t where t.lastMessageAt is not null and (t.department.id = :departmentId or exists (select p.id from ChatParticipant p where p.thread = t and p.user.id = :userId)) order by t.lastMessageAt desc")
+    @Query("select t from ChatThread t where t.lastMessageAt is not null and (t.department.id = :departmentId or t.otherDepartment.id = :departmentId or exists (select p.id from ChatParticipant p where p.thread = t and p.user.id = :userId)) order by t.lastMessageAt desc")
     List<ChatThread> findVisibleTo(@Param("userId") Long userId, @Param("departmentId") Long departmentId, Pageable pageable);
 
     @Query("select t from ChatThread t where t.lastMessageAt is not null order by t.lastMessageAt desc")
@@ -27,7 +27,8 @@ public interface ChatThreadRepository extends JpaRepository<ChatThread, Long> {
     List<Long> findIdsInactiveSince(@Param("cutoff") LocalDateTime cutoff);
 
     @Query("select t.id from ChatThread t where (t.subjectType = com.company.kanban.entity.ChatSubjectType.TASK and not exists (select k.id from Task k where k.id = t.subjectId))" +
-            " or (t.subjectType = com.company.kanban.entity.ChatSubjectType.PLANNING and not exists (select i.id from PpcPlanningItem i where i.id = t.subjectId))")
+            " or (t.subjectType = com.company.kanban.entity.ChatSubjectType.PLANNING and not exists (select i.id from PpcPlanningItem i where i.id = t.subjectId))" +
+            " or (t.subjectType = com.company.kanban.entity.ChatSubjectType.REQUEST and not exists (select r.id from InterdepartmentRequest r where r.id = t.subjectId))")
     List<Long> findOrphanIds();
 
     @Modifying

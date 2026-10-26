@@ -4,7 +4,7 @@ import { formatChatTime } from "../api/chatApi";
 import ChatPanel from "../components/ChatPanel";
 import { useChat } from "../context/ChatContext";
 
-// Every chat the user follows, plus (for managers and admins) every chat they are allowed to read.
+// Every request chat the user follows, plus (for managers and admins) every chat they are allowed to read.
 export default function ChatPage({ user, target, onSelect }) {
   const { subscribe } = useChat();
   const canSeeAll = user?.role === "ADMIN" || user?.role === "MANAGER";
@@ -31,7 +31,7 @@ export default function ChatPage({ user, target, onSelect }) {
 
   const isSelected = (thread) => target && thread.subjectType.toLowerCase() === target.type && thread.subjectId === target.id;
   return <section className="chat-page">
-    <div className="admin-page-heading"><div><p className="eyebrow">Workspace</p><h1>Chat</h1><p>Conversations inside tasks and planning items. Messages are kept for 3 months.</p></div></div>
+    <div className="admin-page-heading"><div><p className="eyebrow">Workspace</p><h1>Chat</h1><p>Conversations inside interdepartment requests. Messages are kept for 3 months.</p></div></div>
     <div className="chat-page-layout">
       <aside className="chat-thread-list" aria-label="Chats">
         {canSeeAll && <div className="chat-scope" role="tablist">
@@ -40,11 +40,11 @@ export default function ChatPage({ user, target, onSelect }) {
         </div>}
         {error && <p className="chat-error">{error}</p>}
         {loading && !threads.length && <p className="chat-muted">Loading…</p>}
-        {!loading && !threads.length && !error && <p className="chat-muted">No chats yet. Open a task or planning item and use its Chat tab.</p>}
+        {!loading && !threads.length && !error && <p className="chat-muted">No chats yet. Open a request in Requests and use its Chat button.</p>}
         {threads.map((thread) => <button key={`${thread.subjectType}-${thread.subjectId}`} type="button" className={`chat-thread ${isSelected(thread) ? "is-active" : ""}`}
           onClick={() => onSelect({ type: thread.subjectType.toLowerCase(), id: thread.subjectId })}>
           <span className="chat-thread-top"><strong>{thread.title}</strong>{thread.unreadCount > 0 && <span className="chat-unread">{thread.unreadCount}</span>}</span>
-          <span className="chat-thread-meta">{thread.subjectType === "TASK" ? "Task" : "Planning"}{thread.departmentName ? ` · ${thread.departmentName}` : ""} · {formatChatTime(thread.lastMessageAt)}</span>
+          <span className="chat-thread-meta">Request{thread.departmentName ? ` · ${thread.departmentName}` : ""} · {formatChatTime(thread.lastMessageAt)}</span>
           {thread.lastMessagePreview && <span className="chat-thread-preview">{thread.lastMessagePreview}</span>}
         </button>)}
       </aside>

@@ -26,6 +26,7 @@ test("files are checked before upload", () => {
 test("chat links identify the task or planning item", () => {
   assert.equal(chatPath("TASK", 5), "/api/chat/task/5");
   assert.equal(isSameSubject({ subjectType: "PLANNING", subjectId: 9 }, "planning", "9"), true);
-  assert.deepEqual(chatTargetFromLocation("?type=planning&id=12"), { type: "planning", id: 12 });
+  assert.deepEqual(chatTargetFromLocation("?type=request&id=12"), { type: "request", id: 12 });
+  assert.equal(chatTargetFromLocation("?type=planning&id=12"), null);
   assert.equal(chatTargetFromLocation("?type=board&id=1"), null);
 });

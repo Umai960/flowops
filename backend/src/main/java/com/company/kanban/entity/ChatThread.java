@@ -3,7 +3,7 @@ package com.company.kanban.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-/** One chat (comment space) per task or planning item. Created when the first message is sent or the first person is added. */
+/** One chat (comment space) per interdepartment request. Created when the first message is sent or the first person is added. */
 @Entity
 @Table(name = "chat_threads", uniqueConstraints = @UniqueConstraint(name = "uk_chat_thread_subject", columnNames = {"subject_type", "subject_id"}),
         indexes = @Index(name = "idx_chat_thread_last_message", columnList = "last_message_at"))
@@ -24,6 +24,11 @@ public class ChatThread {
     @JoinColumn(name = "department_id")
     private Department department;
 
+    // A request involves two departments: department is the requesting side, otherDepartment the receiving side.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "other_department_id")
+    private Department otherDepartment;
+
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -38,11 +43,12 @@ public class ChatThread {
 
     protected ChatThread() {}
 
-    public ChatThread(ChatSubjectType subjectType, Long subjectId, String title, Department department) {
+    public ChatThread(ChatSubjectType subjectType, Long subjectId, String title, Department department, Department otherDepartment) {
         this.subjectType = subjectType;
         this.subjectId = subjectId;
         this.title = title;
         this.department = department;
+        this.otherDepartment = otherDepartment;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -51,6 +57,8 @@ public class ChatThread {
     public Long getSubjectId() { return subjectId; }
     public Department getDepartment() { return department; }
     public void setDepartment(Department department) { this.department = department; }
+    public Department getOtherDepartment() { return otherDepartment; }
+    public void setOtherDepartment(Department otherDepartment) { this.otherDepartment = otherDepartment; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getLastMessagePreview() { return lastMessagePreview; }

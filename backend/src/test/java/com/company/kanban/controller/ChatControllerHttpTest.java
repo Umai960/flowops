@@ -31,7 +31,7 @@ class ChatControllerHttpTest {
     @Value("${local.server.port}") int port;
     @Autowired UserRepository users;
     @Autowired DepartmentRepository departments;
-    @Autowired PpcPlanningItemRepository planningItems;
+    @Autowired InterdepartmentRequestRepository requests;
     @Autowired JwtService jwt;
 
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
@@ -39,10 +39,12 @@ class ChatControllerHttpTest {
     @Test
     void messagesArriveLiveAndFilesCanBeUploaded() throws Exception {
         String suffix = UUID.randomUUID().toString().substring(0, 8);
-        Department department = departments.save(new Department("Chat HTTP " + suffix));
-        User sender = users.save(new User("Sender", "sender." + suffix + "@chat.test", "x", Role.STAFF, department));
-        User reader = users.save(new User("Reader", "reader." + suffix + "@chat.test", "x", Role.STAFF, department));
-        PpcPlanningItem item = planningItems.save(new PpcPlanningItem("Live plan", null, LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 2), null, null, reader));
+        Department rdd = departments.save(new Department("Chat HTTP RDD " + suffix));
+        Department ppc = departments.save(new Department("Chat HTTP PPC " + suffix));
+        User sender = users.save(new User("Sender", "sender." + suffix + "@chat.test", "x", Role.STAFF, rdd));
+        // The reader is in the receiving department and has never written in the chat.
+        User reader = users.save(new User("Reader", "reader." + suffix + "@chat.test", "x", Role.STAFF, ppc));
+        InterdepartmentRequest item = requests.save(new InterdepartmentRequest(rdd, ppc, sender, "Live request", "details", Priority.MEDIUM, LocalDate.of(2026, 11, 2)));
 
         HttpResponse<java.io.InputStream> stream = client.send(HttpRequest.newBuilder(uri("/api/chat/stream"))
                 .header("Authorization", "Bearer " + jwt.generateToken(reader)).GET().build(), HttpResponse.BodyHandlers.ofInputStream());
@@ -56,22 +58,22 @@ class ChatControllerHttpTest {
             } catch (Exception e) { return null; }
         });
 
-        HttpResponse<String> posted = postMultipart("/api/chat/planning/" + item.getId() + "/messages", sender,
+        HttpResponse<String> posted = postMultipart("/api/chat/request/" + item.getId() + "/messages", sender,
                 "body", null, "Live hello".getBytes(StandardCharsets.UTF_8));
         assertThat(posted.statusCode()).isEqualTo(201);
         assertThat(received.get(10, TimeUnit.SECONDS)).contains("\"senderName\":\"Sender\"");
         stream.body().close();
 
-        HttpResponse<String> upload = postMultipart("/api/chat/planning/" + item.getId() + "/messages", sender,
+        HttpResponse<String> upload = postMultipart("/api/chat/request/" + item.getId() + "/messages", sender,
                 "file", "stock.xlsx", new byte[]{9, 8, 7});
         assertThat(upload.statusCode()).isEqualTo(201);
         assertThat(upload.body()).contains("\"name\":\"stock.xlsx\"");
 
-        HttpResponse<String> tooLarge = postMultipart("/api/chat/planning/" + item.getId() + "/messages", sender,
+        HttpResponse<String> tooLarge = postMultipart("/api/chat/request/" + item.getId() + "/messages", sender,
                 "file", "huge.pdf", new byte[10 * 1024 * 1024 + 10]);
         assertThat(tooLarge.statusCode()).isEqualTo(413);
 
-        HttpResponse<String> anonymous = client.send(HttpRequest.newBuilder(uri("/api/chat/planning/" + item.getId())).GET().build(),
+        HttpResponse<String> anonymous = client.send(HttpRequest.newBuilder(uri("/api/chat/request/" + item.getId())).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(anonymous.statusCode()).isEqualTo(401);
     }
