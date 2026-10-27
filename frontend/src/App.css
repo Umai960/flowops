@@ -339,7 +339,7 @@
 .empty-state { border: 1px dashed #cad7e8; background: #fff; color: var(--color-text-muted); }
 .history-notice { border-left-color: var(--color-primary); background: var(--color-primary-soft); }
 
-@media (max-width: 900px) {
+@media (max-width: 760px) {
   .sidebar { width: var(--sidebar-collapsed-width); }
   .sidebar .brand-copy, .sidebar .sidebar-section-label, .sidebar .sidebar-nav button span, .sidebar .sidebar-profile .profile-copy, .sidebar .sidebar-logout span:not(.logout-symbol), .sidebar .sidebar-collapse span { display: none; }
   .sidebar-brand, .sidebar-collapsed .sidebar-brand { justify-content: center; padding: 0; }
@@ -1147,7 +1147,8 @@
 .dashboard-open-button { margin-top: 16px; }
 .dashboard-panel { min-width: 0; margin-bottom: 16px; padding: 20px; border: 1px solid #303641; border-radius: 14px; background: #1a1e25; }
 .dashboard-panel h2 { margin: 0; font-size: 18px; }
-.panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.panel-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.dashboard-panel .panel-heading .text-button { max-width: 100%; white-space: normal; }
 .dashboard-status, .dashboard-error { padding: 28px 0; color: #aeb6c4; }
 .dashboard-error { color: #ffb8bd; }
 .primary-button, .secondary-button { padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; }
@@ -1160,7 +1161,7 @@
 .dashboard-task, .team-row, .department-row, .project-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-bottom: 1px solid #2c323c; }
 .dashboard-task:last-child, .team-row:last-child, .department-row:last-child, .project-row:last-child { border-bottom: 0; }
 .dashboard-task > div:first-child, .team-row > div:first-child, .project-row span:first-child, .department-row span:first-child { min-width: 0; }
-.dashboard-task strong, .team-row strong, .project-row strong, .department-row strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-task strong, .team-row strong, .project-row strong, .department-row strong { display: block; overflow-wrap: anywhere; white-space: normal; }
 .dashboard-task small, .team-row small, .project-row small, .department-row small { display: block; margin-top: 4px; color: #8e99a9; font-size: 12px; }
 .due-badge { display: flex; flex-direction: column; align-items: end; gap: 3px; color: #ffd37a; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .due-badge small { color: #8e99a9; font-weight: 400; }
@@ -1340,7 +1341,7 @@
 .app-content { min-width: 0; width: 100%; }
 .dashboard-page { width: 100%; max-width: 1760px; }
 
-@media (max-width: 900px) and (min-width: 641px) {
+@media (max-width: 760px) and (min-width: 641px) {
   .app-shell { --shell-sidebar-width: var(--sidebar-collapsed-width); }
 }
 @media (max-width: 640px) {

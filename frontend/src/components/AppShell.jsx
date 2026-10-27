@@ -29,10 +29,13 @@ function Icon({ name, size = 19 }) {
   return <svg className="ui-icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icons[name]}</svg>;
 }
 
+const SIDEBAR_KEY = "flowops.sidebar";
+
 function AppShell({ user, activeView, onNavigate, onNotificationNavigate, onLogout, children }) {
   const { fetchUnreadCount } = useNotifications();
   const { unreadCount: chatUnread } = useChat();
-  const [collapsed, setCollapsed] = useState(true);
+  // The sidebar starts open with full labels; a user's own choice to collapse it is remembered.
+  const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem(SIDEBAR_KEY) === "collapsed"; } catch { return false; } });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const items = getNavigationItems(user).map(([id, label]) => ({ id, label, icon: id === "chat" ? "chat" : id === "requests" ? "requests" : id === "ppc-arrivals" ? "shipment" : id === "ppc-planning" ? "calendar" : id === "personal" ? "kanban" : id === "completed" ? "report" : id === "project" ? "projects" : id === "staff" ? "team" : id === "reviews" ? "reviews" : id === "report" ? "report" : id === "users-admin" ? "users" : id === "client-access" ? "network" : id === "dashboard" ? "dashboard" : "settings" }));
 
@@ -58,7 +61,7 @@ function AppShell({ user, activeView, onNavigate, onNotificationNavigate, onLogo
       <div className="sidebar-footer">
         <div className="sidebar-profile" title={`${user?.name || user?.email || "User"} · ${user?.role || ""}${user?.departmentName ? ` · ${user.departmentName}` : ""}`}><div className="avatar">{(user?.name || user?.email || "K").slice(0, 1).toUpperCase()}</div><div className="profile-copy"><strong>{user?.name || user?.email || "User"}</strong><span>{user?.role}{user?.departmentName ? ` · ${user.departmentName}` : ""}</span></div></div>
         <button type="button" className="sidebar-logout" aria-label="Sign out" title={collapsed ? "Sign out" : undefined} onClick={onLogout}><span className="logout-symbol">↪</span><span>Sign out</span></button>
-        <button type="button" className="sidebar-collapse" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((value) => !value)}><Icon name={collapsed ? "chevronRight" : "chevronLeft"} /><span>{collapsed ? "Expand" : "Collapse"}</span></button>
+        <button type="button" className="sidebar-collapse" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((value) => { const next = !value; try { localStorage.setItem(SIDEBAR_KEY, next ? "collapsed" : "open"); } catch { /* Preference only. */ } return next; })}><Icon name={collapsed ? "chevronRight" : "chevronLeft"} /><span>{collapsed ? "Expand" : "Collapse"}</span></button>
       </div>
     </aside>
     <main className="app-main">

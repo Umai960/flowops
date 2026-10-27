@@ -31,6 +31,7 @@ import InterdepartmentRequestsPage from "./pages/InterdepartmentRequestsPage";
 import ChatPage from "./pages/ChatPage";
 import { chatTargetFromLocation } from "./pages/chatTarget.js";
 import RddTaskActions from "./components/RddTaskActions";
+import DeleteDoneTaskButton from "./components/DeleteDoneTaskButton";
 import { apiFetch } from "./api/apiFetch";
 import { useAuth } from "./context/AuthContext";
 
@@ -803,7 +804,7 @@ function App() {
     >
     <div className="app">
       {activeView === "completed" ? (
-        <CompletedTasksPage />
+        <CompletedTasksPage user={user} />
       ) : activeView === "requests" ? (
         <InterdepartmentRequestsPage user={user} />
       ) : activeView === "desktop-notifications" ? (
@@ -1015,7 +1016,7 @@ function App() {
                       data-general-task-id={task.id}
                       data-general-status={status}
                       onPointerDown={(event) => handlePointerDown(event, task)}
-                    ><TaskCardContent task={task} /><RddTaskActions task={task} user={user} onChanged={() => loadGeneralTasks(selectedDepartmentId)} /></div>
+                    ><TaskCardContent task={task} /><RddTaskActions task={task} user={user} onChanged={() => loadGeneralTasks(selectedDepartmentId)} /><DeleteDoneTaskButton task={task} user={user} onDeleted={() => loadGeneralTasks(selectedDepartmentId)} /></div>
                     {dropIndicator?.status === status && dropIndicator?.taskId === task.id && dropIndicator?.position === "after" && <div className="drop-indicator" />}
                   </div>
                 ))}
@@ -1059,6 +1060,7 @@ function App() {
                     >
                       <TaskCardContent task={task} showBoardName={false} />
                       <RddTaskActions task={task} user={user} onChanged={() => loadBoard(selectedBoardId)} />
+                      <DeleteDoneTaskButton task={task} user={user} onDeleted={() => loadBoard(selectedBoardId)} />
                     </div>
 
                     {dropIndicator?.columnId === column.id &&

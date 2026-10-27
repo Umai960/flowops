@@ -17,6 +17,7 @@ import com.company.kanban.entity.User;
 import com.company.kanban.repository.KanbanColumnRepository;
 import com.company.kanban.repository.DepartmentRepository;
 import com.company.kanban.repository.TaskRepository;
+import com.company.kanban.repository.TaskCheckpointRepository;
 import com.company.kanban.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -65,6 +66,11 @@ public class TaskService {
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     void setChatService(ChatService chatService) { this.chatService = chatService; }
+
+    private TaskCheckpointRepository checkpointRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void setCheckpointRepository(TaskCheckpointRepository checkpointRepository) { this.checkpointRepository = checkpointRepository; }
 
     TaskService(TaskRepository taskRepository, KanbanColumnRepository kanbanColumnRepository,
                 UserRepository userRepository, DepartmentRepository departmentRepository,
@@ -518,6 +524,8 @@ public class TaskService {
         Long columnId = task.getColumn() == null ? null : task.getColumn().getId();
 
         if (chatService != null) chatService.deleteForSubject(com.company.kanban.entity.ChatSubjectType.TASK, taskId);
+        // RDD checkpoints reference the task, so they must go first.
+        if (checkpointRepository != null) checkpointRepository.deleteByTaskId(taskId);
         taskRepository.delete(task);
 
         taskRepository.flush();
