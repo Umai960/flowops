@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api/apiFetch";
 import RddTaskActions from "../components/RddTaskActions";
+import DeleteDoneTaskButton from "../components/DeleteDoneTaskButton";
 
 const API_BASE_URL = "";
 const compactDate = (value) => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", timeZone: "Asia/Kuala_Lumpur" }).format(new Date(`${value}T00:00:00+08:00`)) : "";
@@ -110,6 +111,7 @@ function StaffKanban({ staffUser, currentUser, refreshKey, onTaskSelected, onTas
                       <div className="task-card-footer"><span>{task.assigneeName || "Unassigned"}</span>{task.dueDate && <span>{compactDate(task.dueDate)}</span>}</div>
                       {task.checkpointSummary?.currentOrNextTitle && <small className="task-checkpoint-hint"><span>{task.checkpointSummary.currentOrNextLabel}</span><strong>{task.checkpointSummary.currentOrNextTitle}</strong></small>}
                       <RddTaskActions task={task} user={currentUser} onChanged={(updated) => setTasks((items) => items.map((item) => item.id === updated.id ? updated : item))} />
+                      <DeleteDoneTaskButton task={task} user={currentUser} onDeleted={(id) => setTasks((items) => items.filter((item) => item.id !== id))} />
 
                       {status.value === "REVIEW" && (
                         <div className="review-actions" onClick={(event) => event.stopPropagation()}>

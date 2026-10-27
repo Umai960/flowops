@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../api/apiFetch";
 import CreateTaskModal from "../components/CreateTaskModal";
 import RddTaskActions from "../components/RddTaskActions";
+import DeleteDoneTaskButton from "../components/DeleteDoneTaskButton";
 
 const API_BASE_URL = "";
 const DRAG_START_THRESHOLD = 6;
@@ -267,6 +268,7 @@ function PersonalKanban({ user, users = [], departments = [] }) {
                       <div className="task-card-footer"><span>{task.assigneeName || "Unassigned"}</span>{task.dueDate && <span>{compactDate(task.dueDate)}</span>}</div>
                       {task.checkpointSummary?.currentOrNextTitle && <small className="task-checkpoint-hint"><span>{task.checkpointSummary.currentOrNextLabel}</span><strong>{task.checkpointSummary.currentOrNextTitle}</strong></small>}
                       <RddTaskActions task={task} user={user} onChanged={loadMyTasks} />
+                      <DeleteDoneTaskButton task={task} user={user} onDeleted={loadMyTasks} />
                     </div>
 
                     {dropIndicator?.status === status.value &&
