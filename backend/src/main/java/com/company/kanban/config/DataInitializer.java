@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 public class DataInitializer {
 
     private static final String PPC_DEPARTMENT_NAME = "PPC";
+    private static final String PROD_1_DEPARTMENT_NAME = "PROD_1";
     private static final String DEFAULT_BOARD_NAME = "PPC Workflow Board";
     private static final String DEFAULT_BOARD_DESCRIPTION =
         "Workflow board for the PPC team";
@@ -75,6 +76,23 @@ public class DataInitializer {
                     .orElseThrow(() -> new IllegalStateException(
                             "PPC department is missing"
                     ));
+
+            // Requests sent to PPC before PROD_1 became a co-handler (1.3.4) are
+            // shared with PROD_1 too, together with their chat threads. Only
+            // rows still missing a co-handler are touched, so this is safe to
+            // run on every start.
+            departmentRepository.findByNameIgnoreCase(PROD_1_DEPARTMENT_NAME).ifPresent(prod1 -> {
+                jdbcTemplate.update(
+                    "UPDATE interdepartment_requests SET co_target_department_id = ? "
+                        + "WHERE target_department_id = ? AND co_target_department_id IS NULL",
+                    prod1.getId(), ppcDepartment.getId());
+                jdbcTemplate.update(
+                    "UPDATE chat_threads SET third_department_id = ? "
+                        + "WHERE subject_type = 'REQUEST' AND third_department_id IS NULL "
+                        + "AND subject_id IN (SELECT id FROM interdepartment_requests "
+                        + "WHERE co_target_department_id = ?)",
+                    prod1.getId(), prod1.getId());
+            });
 
             Board board = boardRepository
                     .findByNameIgnoreCaseAndDepartmentId(
