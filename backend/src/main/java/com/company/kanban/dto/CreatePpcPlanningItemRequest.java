@@ -13,5 +13,11 @@ public record CreatePpcPlanningItemRequest(
         @NotNull LocalDate endDate,
         @Size(max = 32) String priority,
         @Size(max = 32) String status,
-        Long departmentId
-) { }
+        Long departmentId,
+        @Size(max = 16) String color
+) {
+    public CreatePpcPlanningItemRequest(String title, String description, LocalDate startDate, LocalDate endDate,
+                                        String priority, String status, Long departmentId) {
+        this(title, description, startDate, endDate, priority, status, departmentId, null);
+    }
+}

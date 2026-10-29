@@ -13,6 +13,16 @@ export function addDays(dateValue, amount) {
 }
 
 // FlowOps endDate is inclusive; FullCalendar all-day end dates are exclusive.
+// Colour keys accepted by the server; "" keeps the default teal.
+export const PLANNING_COLORS = [
+  ["", "Default"], ["blue", "Blue"], ["green", "Green"], ["orange", "Orange"], ["red", "Red"],
+  ["purple", "Purple"], ["yellow", "Yellow"], ["pink", "Pink"], ["gray", "Gray"],
+];
+
+export function planningColorClass(item) {
+  return item?.color ? ` planning-color-${item.color}` : "";
+}
+
 export function planningItemToEvent(item) {
   return { id: String(item.id), title: item.title, start: formatDateInput(item.startDate), end: addDays(item.endDate, 1), allDay: true, extendedProps: { item } };
 }
