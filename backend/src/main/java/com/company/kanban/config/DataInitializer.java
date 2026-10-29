@@ -55,6 +55,7 @@ public class DataInitializer {
             String[] departments = {
                 "PPC",
                 "PROD",
+                "PROD_1",
                 "RDD",
                 "QC",
                 "Maintenance"

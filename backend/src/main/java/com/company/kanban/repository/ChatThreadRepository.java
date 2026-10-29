@@ -17,7 +17,7 @@ public interface ChatThreadRepository extends JpaRepository<ChatThread, Long> {
     @Query("select t from ChatThread t where t.lastMessageAt is not null and exists (select p.id from ChatParticipant p where p.thread = t and p.user.id = :userId) order by t.lastMessageAt desc")
     List<ChatThread> findFollowedBy(@Param("userId") Long userId, Pageable pageable);
 
-    @Query("select t from ChatThread t where t.lastMessageAt is not null and (t.department.id = :departmentId or t.otherDepartment.id = :departmentId or exists (select p.id from ChatParticipant p where p.thread = t and p.user.id = :userId)) order by t.lastMessageAt desc")
+    @Query("select t from ChatThread t where t.lastMessageAt is not null and (t.department.id = :departmentId or t.otherDepartment.id = :departmentId or t.thirdDepartment.id = :departmentId or exists (select p.id from ChatParticipant p where p.thread = t and p.user.id = :userId)) order by t.lastMessageAt desc")
     List<ChatThread> findVisibleTo(@Param("userId") Long userId, @Param("departmentId") Long departmentId, Pageable pageable);
 
     @Query("select t from ChatThread t where t.lastMessageAt is not null order by t.lastMessageAt desc")

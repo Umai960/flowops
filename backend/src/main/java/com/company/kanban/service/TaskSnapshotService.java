@@ -86,7 +86,7 @@ public class TaskSnapshotService {
         }
         if (currentUser.getRole() == Role.MANAGER && (target.getDepartment() == null || currentUser.getDepartment() == null
                 || !Objects.equals(currentUser.getDepartment().getId(), target.getDepartment().getId()))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Managers can only view their department's history");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "HODs can only view their department's history");
         }
         SnapshotBatch batch = getCompletedBatch(date, requestedType);
         return snapshotRepository.findByBatchIdAndAssigneeIdOrderByStatusAscPositionAsc(batch.getId(), userId)
