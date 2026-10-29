@@ -53,6 +53,12 @@ class PpcPlanningServiceTest {
         assertEquals(10L, response.departmentId());
     }
 
+    @Test void itemsKeepAChosenColourAndRejectUnknownOnes() {
+        assertEquals("orange", service.create(new CreatePpcPlanningItemRequest("Plan", null, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 1), null, null, null, " Orange "), ppcStaff).color());
+        assertNull(service.create(new CreatePpcPlanningItemRequest("Plan", null, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 1), null, null, null, ""), ppcStaff).color());
+        assertThrows(ResponseStatusException.class, () -> service.create(new CreatePpcPlanningItemRequest("Plan", null, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 1), null, null, null, "#ff0000"), ppcStaff));
+    }
+
     @Test void adminCanCreate() { assertDoesNotThrow(() -> service.create(new CreatePpcPlanningItemRequest("Plan", null, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 2), null, null, null), admin)); }
 
     @Test void everyDepartmentCreatesInItsOwnCalendar() {

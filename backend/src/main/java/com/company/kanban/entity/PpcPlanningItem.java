@@ -33,6 +33,10 @@ public class PpcPlanningItem {
     @Column(length = 32)
     private String status;
 
+    /** Optional colour key chosen by the user so items on the same day are easy to tell apart. */
+    @Column(length = 16)
+    private String color;
+
     // Reserved for a future additive link to an existing General Task.
     @Column(name = "linked_task_id")
     private Long linkedTaskId;
@@ -96,6 +100,8 @@ public class PpcPlanningItem {
     public void setPriority(String priority) { this.priority = priority; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getColor() { return color; }
+    public void setColor(String color) { this.color = color; }
     public Long getLinkedTaskId() { return linkedTaskId; }
     public void setLinkedTaskId(Long linkedTaskId) { this.linkedTaskId = linkedTaskId; }
     public User getCreatedBy() { return createdBy; }

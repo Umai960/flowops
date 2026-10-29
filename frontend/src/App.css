@@ -1581,6 +1581,39 @@
 .flowops-calendar-event { min-width:0; overflow:hidden; border-left:3px solid #2f8d9d; border-radius:5px; background:#eaf7f8; color:#1b5663; font-size:11px; font-weight:750; line-height:1.2; padding:3px 6px; }
 .flowops-calendar-event .planning-item-title { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .flowops-calendar-event small { display:block; overflow:hidden; color:#39727d; font-size:9px; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+.flowops-calendar-event.planning-color-blue { border-left-color:#2563eb; background:#e8f0fe; color:#1e3a8a; }
+.flowops-calendar-event.planning-color-blue small { color:#1e3a8a; }
+.flowops-calendar-event.planning-color-green { border-left-color:#16a34a; background:#e7f7ec; color:#14532d; }
+.flowops-calendar-event.planning-color-green small { color:#14532d; }
+.flowops-calendar-event.planning-color-orange { border-left-color:#ea7a0c; background:#fff1e3; color:#7c3a06; }
+.flowops-calendar-event.planning-color-orange small { color:#7c3a06; }
+.flowops-calendar-event.planning-color-red { border-left-color:#dc2626; background:#fdeaea; color:#7f1d1d; }
+.flowops-calendar-event.planning-color-red small { color:#7f1d1d; }
+.flowops-calendar-event.planning-color-purple { border-left-color:#7c3aed; background:#f1eafe; color:#4c1d95; }
+.flowops-calendar-event.planning-color-purple small { color:#4c1d95; }
+.flowops-calendar-event.planning-color-yellow { border-left-color:#ca8a04; background:#fef7d6; color:#713f12; }
+.flowops-calendar-event.planning-color-yellow small { color:#713f12; }
+.flowops-calendar-event.planning-color-pink { border-left-color:#db2777; background:#fde8f2; color:#831843; }
+.flowops-calendar-event.planning-color-pink small { color:#831843; }
+.flowops-calendar-event.planning-color-gray { border-left-color:#6b7280; background:#f0f1f3; color:#374151; }
+.flowops-calendar-event.planning-color-gray small { color:#374151; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.planning-color-field { border:0; margin:0; padding:0; display:grid; gap:8px; }
+.planning-color-field legend { padding:0; margin-bottom:8px; font-size:13px; font-weight:700; }
+.planning-color-options { display:flex; flex-wrap:wrap; gap:8px; }
+.planning-color-swatch { position:relative; width:30px; height:30px; border-radius:50%; background:#2f8d9d; cursor:pointer; box-shadow:inset 0 0 0 2px rgba(255,255,255,.6); }
+.planning-color-swatch.planning-color-blue { background:#2563eb; }
+.planning-color-swatch.planning-color-green { background:#16a34a; }
+.planning-color-swatch.planning-color-orange { background:#ea7a0c; }
+.planning-color-swatch.planning-color-red { background:#dc2626; }
+.planning-color-swatch.planning-color-purple { background:#7c3aed; }
+.planning-color-swatch.planning-color-yellow { background:#eab308; }
+.planning-color-swatch.planning-color-pink { background:#db2777; }
+.planning-color-swatch.planning-color-gray { background:#6b7280; }
+
+.planning-color-swatch input { position:absolute; inset:0; opacity:0; margin:0; cursor:pointer; }
+.planning-color-swatch.is-selected { outline:2px solid #1d4ed8; outline-offset:2px; }
+.planning-color-swatch:focus-within { outline:2px solid #1d4ed8; outline-offset:2px; }
 .arrival-event { border-left-color:#64748b; background:#f1f5f9; color:#334155; }
 .arrival-event small { color:#475569; }
 .arrival-event.status-delayed { border-left-color:#c2410c; background:#fff7ed; color:#9a3412; }

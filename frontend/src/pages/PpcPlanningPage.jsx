@@ -3,9 +3,9 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { apiFetch } from "../api/apiFetch";
-import { dateKey, eventDatesToPlanningDates, formatDateInput, planningItemToEvent } from "./ppcPlanningUtils.js";
+import { dateKey, eventDatesToPlanningDates, formatDateInput, PLANNING_COLORS, planningColorClass, planningItemToEvent } from "./ppcPlanningUtils.js";
 
-const EMPTY_FORM = { title: "", description: "", startDate: "", endDate: "", priority: "", status: "" };
+const EMPTY_FORM = { title: "", description: "", startDate: "", endDate: "", priority: "", status: "", color: "" };
 
 function PlanningModal({ item, initialDate, departmentId, departmentName, onClose, onSaved, onDeleted }) {
   const [form, setForm] = useState(item ? { ...EMPTY_FORM, ...item } : { ...EMPTY_FORM, startDate: initialDate, endDate: initialDate });
@@ -20,7 +20,7 @@ function PlanningModal({ item, initialDate, departmentId, departmentName, onClos
     if (!form.startDate || !form.endDate || form.endDate < form.startDate) { setError("End date must be on or after start date."); return; }
     setSaving(true);
     try {
-      const payload = { ...(!isEdit && departmentId ? { departmentId } : {}), title: form.title.trim(), description: form.description?.trim() || null, startDate: form.startDate, endDate: form.endDate, priority: form.priority?.trim() || null, status: form.status?.trim() || null };
+      const payload = { ...(!isEdit && departmentId ? { departmentId } : {}), title: form.title.trim(), description: form.description?.trim() || null, startDate: form.startDate, endDate: form.endDate, priority: form.priority?.trim() || null, status: form.status?.trim() || null, color: form.color || null };
       const response = await apiFetch(isEdit ? `/api/ppc/planning/${item.id}` : "/api/ppc/planning", { method: isEdit ? "PUT" : "POST", body: JSON.stringify(payload) });
       if (!response.ok) throw new Error((await response.text()) || `Save failed (${response.status}).`);
       onSaved(await response.json());
@@ -43,6 +43,7 @@ function PlanningModal({ item, initialDate, departmentId, departmentName, onClos
         <label>Description<textarea value={form.description || ""} onChange={update("description")} maxLength={2000} /></label>
         <label>Start date<input type="date" value={formatDateInput(form.startDate)} onChange={update("startDate")} required /></label>
         <label>End date<input type="date" value={formatDateInput(form.endDate)} onChange={update("endDate")} required /></label>
+        <fieldset className="planning-color-field"><legend>Colour</legend><div className="planning-color-options">{PLANNING_COLORS.map(([key, label]) => <label key={key || "default"} className={`planning-color-swatch${key ? ` planning-color-${key}` : ""}${(form.color || "") === key ? " is-selected" : ""}`} title={label}><input type="radio" name="planning-color" value={key} checked={(form.color || "") === key} onChange={() => setForm((current) => ({ ...current, color: key }))} /><span className="sr-only">{label}</span></label>)}</div></fieldset>
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button>{isEdit && <button type="button" className="danger-button" onClick={remove} disabled={saving}>Delete</button>}<button type="submit" className="primary-button" disabled={saving}>{saving ? "Saving…" : "Save"}</button></div>
       </form>
     </div>
@@ -72,7 +73,7 @@ export default function PpcPlanningPage({ user, departments = [] }) {
   }, [calendarMonth, loadMonth]);
   const updateDates = useCallback(async (eventInfo) => {
     const item = eventInfo.event.extendedProps.item; const dates = eventDatesToPlanningDates(eventInfo.event);
-    try { const response = await apiFetch(`/api/ppc/planning/${item.id}`, { method: "PUT", body: JSON.stringify({ title: item.title, description: item.description, priority: item.priority, status: item.status, ...dates }) }); if (!response.ok) throw new Error((await response.text()) || `Unable to save planning dates (${response.status}).`); const saved = await response.json(); setItems((current) => current.map((entry) => entry.id === saved.id ? saved : entry)); eventInfo.event.setExtendedProp("item", saved); }
+    try { const response = await apiFetch(`/api/ppc/planning/${item.id}`, { method: "PUT", body: JSON.stringify({ title: item.title, description: item.description, priority: item.priority, status: item.status, color: item.color || null, ...dates }) }); if (!response.ok) throw new Error((await response.text()) || `Unable to save planning dates (${response.status}).`); const saved = await response.json(); setItems((current) => current.map((entry) => entry.id === saved.id ? saved : entry)); eventInfo.event.setExtendedProp("item", saved); }
     catch (saveError) { eventInfo.revert(); setError(saveError.message); }
   }, []);
   useEffect(() => { if (!calendarMonth) loadMonth(today); }, [calendarMonth, loadMonth, today]);
@@ -107,7 +108,7 @@ export default function PpcPlanningPage({ user, departments = [] }) {
   return <section className="ppc-planning-page">
     <div className="admin-page-heading"><div><p className="eyebrow">{departmentName} / Planning</p><h1>Planning Calendar</h1><p>Coordinate {departmentName} planning across the month.</p>{isAdmin && departments.length > 0 && <label className="planning-department-picker">Department <select value={departmentId ?? ""} onChange={(event) => setDepartmentId(Number(event.target.value))}>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>}</div><button type="button" className="primary-button" onClick={() => setModal({ initialDate: dateKey(today) })}>+ Add planning item</button></div>
     {error && <div className="admin-message error">{error}</div>}
-    <div className="planning-calendar-card"><div ref={calendarContainerRef} className="planning-calendar-scroll"><FullCalendar ref={calendarRef} plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" firstDay={1} weekends editable eventDurationEditable eventStartEditable height="auto" headerToolbar={{ left: "today prev", center: "title", right: "next" }} buttonText={{ today: "Today" }} events={events} dayMaxEvents dateClick={(info) => setModal({ initialDate: info.dateStr })} eventClick={(info) => setModal({ item: info.event.extendedProps.item })} eventDrop={updateDates} eventResize={updateDates} datesSet={handleDatesSet} eventContent={(info) => { const item = info.event.extendedProps.item || {}; return <div className="flowops-calendar-event"><span className="planning-item-title">{info.event.title}</span>{(item.priority || item.status) && <small>{item.priority || item.status}</small>}</div>; }} /></div>{loading && <div className="planning-loading">Loading planning items…</div>}</div>
+    <div className="planning-calendar-card"><div ref={calendarContainerRef} className="planning-calendar-scroll"><FullCalendar ref={calendarRef} plugins={[dayGridPlugin, interactionPlugin]} initialView="dayGridMonth" firstDay={1} weekends editable eventDurationEditable eventStartEditable height="auto" headerToolbar={{ left: "today prev", center: "title", right: "next" }} buttonText={{ today: "Today" }} events={events} dayMaxEvents dateClick={(info) => setModal({ initialDate: info.dateStr })} eventClick={(info) => setModal({ item: info.event.extendedProps.item })} eventDrop={updateDates} eventResize={updateDates} datesSet={handleDatesSet} eventContent={(info) => { const item = info.event.extendedProps.item || {}; return <div className={`flowops-calendar-event${planningColorClass(item)}`}><span className="planning-item-title">{info.event.title}</span>{(item.priority || item.status) && <small>{item.priority || item.status}</small>}</div>; }} /></div>{loading && <div className="planning-loading">Loading planning items…</div>}</div>
     {modal && <PlanningModal {...modal} departmentId={isAdmin ? departmentId : null} departmentName={departmentName} onClose={() => setModal(null)} onSaved={upsert} onDeleted={removeItem} />}
   </section>;
 }
