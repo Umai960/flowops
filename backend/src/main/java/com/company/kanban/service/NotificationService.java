@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -120,9 +121,11 @@ public class NotificationService {
     }
 
     public void notifyRequestCreated(InterdepartmentRequest request, User actor) {
-        userRepository.findByDepartmentIdAndRole(request.getTargetDepartment().getId(), Role.MANAGER).forEach(manager ->
+        List<Department> receiving = new ArrayList<>(List.of(request.getTargetDepartment()));
+        if (request.getCoTargetDepartment() != null) receiving.add(request.getCoTargetDepartment());
+        receiving.forEach(department -> userRepository.findByDepartmentIdAndRole(department.getId(), Role.MANAGER).forEach(manager ->
                 notifyRequest(manager, actor, NotificationType.REQUEST_CREATED, "New interdepartment request",
-                        request.getRequestingDepartment().getName() + " requested: " + request.getTitle(), request.getId()));
+                        request.getRequestingDepartment().getName() + " requested: " + request.getTitle(), request.getId())));
     }
 
     public void notifyRequestStatusChanged(InterdepartmentRequest request, User actor) {

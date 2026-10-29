@@ -16,15 +16,21 @@ import org.springframework.data.domain.Pageable;
 
 @Service
 public class InterdepartmentRequestService {
+    /** RDD requests go to PPC and, when the department exists, to PROD_1 as well; both can handle them. */
+    static final String MAIN_HANDLER_DEPARTMENT = "PPC";
+    static final String CO_HANDLER_DEPARTMENT = "PROD_1";
+    private static final Set<String> HANDLER_DEPARTMENTS = Set.of(MAIN_HANDLER_DEPARTMENT, CO_HANDLER_DEPARTMENT);
     private final InterdepartmentRequestRepository requests; private final DepartmentRepository departments; private final UserRepository users; private final NotificationService notifications; private final RequestAttachmentRepository attachments;
     public InterdepartmentRequestService(InterdepartmentRequestRepository requests, DepartmentRepository departments, UserRepository users, NotificationService notifications, RequestAttachmentRepository attachments){this.requests=requests;this.departments=departments;this.users=users;this.notifications=notifications;this.attachments=attachments;}
     @Transactional
     public InterdepartmentRequestResponse create(CreateInterdepartmentRequest input, User current){
         if (current == null || current.getDepartment()==null || (current.getRole()!=Role.ADMIN && !"RDD".equalsIgnoreCase(current.getDepartment().getName()))) throw forbidden();
-        String targetName = input.targetDepartment()==null || input.targetDepartment().isBlank() ? "PPC" : input.targetDepartment().trim();
-        if (current.getRole()!=Role.ADMIN && !"PPC".equalsIgnoreCase(targetName)) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"RDD requests can only target PPC");
+        String targetName = input.targetDepartment()==null || input.targetDepartment().isBlank() ? MAIN_HANDLER_DEPARTMENT : input.targetDepartment().trim();
+        if (current.getRole()!=Role.ADMIN && !MAIN_HANDLER_DEPARTMENT.equalsIgnoreCase(targetName)) throw new ResponseStatusException(HttpStatus.FORBIDDEN,"RDD requests can only target PPC");
         Department target=departments.findByNameIgnoreCase(targetName).orElseThrow(()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"Target department not found"));
-        InterdepartmentRequest saved=requests.save(new InterdepartmentRequest(current.getDepartment(),target,current,input.title().trim(),input.description().trim(),input.priority(),input.neededBy()));
+        InterdepartmentRequest request=new InterdepartmentRequest(current.getDepartment(),target,current,input.title().trim(),input.description().trim(),input.priority(),input.neededBy());
+        if (MAIN_HANDLER_DEPARTMENT.equalsIgnoreCase(target.getName())) departments.findByNameIgnoreCase(CO_HANDLER_DEPARTMENT).ifPresent(request::setCoTargetDepartment);
+        InterdepartmentRequest saved=requests.save(request);
         history(saved,null,InterdepartmentRequestStatus.REQUESTED,current,null); notifications.notifyRequestCreated(saved,current); return toResponse(saved);
     }
     @Transactional(readOnly=true)
@@ -100,21 +106,24 @@ public class InterdepartmentRequestService {
         for(RequestAttachmentRepository.Row row: attachments.findInfoByRequestIds(requestIds)) result.computeIfAbsent(row.requestId(),k->new ArrayList<>()).add(row.toResponse());
         return result;
     }
-    private List<InterdepartmentRequest> visible(User u){ if(u==null) return List.of(); if(u.getRole()==Role.ADMIN) return requests.findAll(); if(u.getDepartment()==null)return List.of(); if("PPC".equalsIgnoreCase(u.getDepartment().getName())) return requests.findByTargetDepartmentIdOrderByCreatedAtDesc(u.getDepartment().getId()).stream().filter(r->r.getAssignedTo()==null || Objects.equals(r.getAssignedTo().getId(),u.getId()) || u.getRole()==Role.MANAGER).toList(); if("RDD".equalsIgnoreCase(u.getDepartment().getName())) return requests.findByRequestingDepartmentIdOrderByCreatedAtDesc(u.getDepartment().getId()); return requests.findByCreatedByIdOrderByCreatedAtDesc(u.getId()); }
+    private List<InterdepartmentRequest> visible(User u){ if(u==null) return List.of(); if(u.getRole()==Role.ADMIN) return requests.findAll(); if(u.getDepartment()==null)return List.of(); if(isHandlerDepartmentName(u.getDepartment())) return requests.findHandledByDepartment(u.getDepartment().getId()).stream().filter(r->r.getAssignedTo()==null || Objects.equals(r.getAssignedTo().getId(),u.getId()) || u.getRole()==Role.MANAGER).toList(); if("RDD".equalsIgnoreCase(u.getDepartment().getName())) return requests.findByRequestingDepartmentIdOrderByCreatedAtDesc(u.getDepartment().getId()); return requests.findByCreatedByIdOrderByCreatedAtDesc(u.getId()); }
     private InterdepartmentRequest load(Long id){return requests.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Request not found"));}
-    private void requireVisible(User u, InterdepartmentRequest r){if(u==null||u.getRole()!=Role.ADMIN && !Objects.equals(u.getDepartment().getId(),r.getRequestingDepartment().getId()) && !Objects.equals(u.getDepartment().getId(),r.getTargetDepartment().getId())) throw forbidden(); if("PPC".equalsIgnoreCase(r.getRequestingDepartment().getName()) && u.getRole()!=Role.ADMIN && Objects.equals(u.getDepartment().getId(),r.getRequestingDepartment().getId()) && !Objects.equals(r.getCreatedBy().getId(),u.getId())) throw forbidden();}
+    private void requireVisible(User u, InterdepartmentRequest r){if(u==null||u.getRole()!=Role.ADMIN && !Objects.equals(u.getDepartment().getId(),r.getRequestingDepartment().getId()) && !Objects.equals(u.getDepartment().getId(),r.getTargetDepartment().getId()) && !isCoTarget(u.getDepartment(),r)) throw forbidden(); if("PPC".equalsIgnoreCase(r.getRequestingDepartment().getName()) && u.getRole()!=Role.ADMIN && Objects.equals(u.getDepartment().getId(),r.getRequestingDepartment().getId()) && !Objects.equals(r.getCreatedBy().getId(),u.getId())) throw forbidden();}
     private boolean canChangeStatus(User u, InterdepartmentRequest r, InterdepartmentRequestStatus to){
         if(u==null) return false;
         if(u.getRole()==Role.ADMIN) return true;
-        boolean ppcHandler=u.getDepartment()!=null && Objects.equals(u.getDepartment().getId(),r.getTargetDepartment().getId()) && "PPC".equalsIgnoreCase(r.getTargetDepartment().getName());
-        if(!ppcHandler) return false;
+        boolean handler=u.getDepartment()!=null && isHandlerDepartmentName(u.getDepartment())
+                && (Objects.equals(u.getDepartment().getId(),r.getTargetDepartment().getId()) || isCoTarget(u.getDepartment(),r));
+        if(!handler) return false;
         if(u.getRole()==Role.MANAGER) return true;
         return u.getRole()==Role.STAFF && (to==InterdepartmentRequestStatus.IN_PROGRESS || to==InterdepartmentRequestStatus.COMPLETED);
     }
+    private static boolean isHandlerDepartmentName(Department d){return d!=null && d.getName()!=null && HANDLER_DEPARTMENTS.contains(d.getName().toUpperCase(Locale.ROOT));}
+    private static boolean isCoTarget(Department d, InterdepartmentRequest r){return d!=null && r.getCoTargetDepartment()!=null && Objects.equals(d.getId(),r.getCoTargetDepartment().getId());}
     private boolean valid(InterdepartmentRequestStatus from, InterdepartmentRequestStatus to){return (from==InterdepartmentRequestStatus.REQUESTED && (to==InterdepartmentRequestStatus.ACKNOWLEDGED||to==InterdepartmentRequestStatus.REJECTED)) || (from==InterdepartmentRequestStatus.ACKNOWLEDGED && (to==InterdepartmentRequestStatus.IN_PROGRESS||to==InterdepartmentRequestStatus.REJECTED)) || (from==InterdepartmentRequestStatus.IN_PROGRESS && to==InterdepartmentRequestStatus.COMPLETED);}
     private boolean terminal(InterdepartmentRequest request){return request.getStatus()==InterdepartmentRequestStatus.COMPLETED || request.getStatus()==InterdepartmentRequestStatus.REJECTED;}
     private void history(InterdepartmentRequest r, InterdepartmentRequestStatus from, InterdepartmentRequestStatus to, User actor,String note){r.getStatusHistory().add(new InterdepartmentRequestStatusHistory(r,from,to,actor,note)); requests.save(r);}
     private ResponseStatusException forbidden(){return new ResponseStatusException(HttpStatus.FORBIDDEN,"You do not have permission to access this request");}
     private InterdepartmentRequestResponse toResponse(InterdepartmentRequest r){return toResponse(r, attachmentsFor(List.of(r.getId())).getOrDefault(r.getId(), List.of()));}
-    private InterdepartmentRequestResponse toResponse(InterdepartmentRequest r, List<InterdepartmentRequestResponse.Attachment> files){return new InterdepartmentRequestResponse(r.getId(),r.getRequestingDepartment().getName(),r.getTargetDepartment().getName(),r.getCreatedBy().getId(),r.getCreatedBy().getName(),r.getAssignedTo()==null?null:r.getAssignedTo().getId(),r.getAssignedTo()==null?null:r.getAssignedTo().getName(),r.getTitle(),r.getDescription(),r.getPriority(),r.getNeededBy(),r.getStatus(),r.getCreatedAt(),r.getUpdatedAt(),r.getAcknowledgedAt(),r.getCompletedAt(),r.getRejectionReason(),r.getLinkedTaskId(),r.getArchivedAt(),r.getStatusHistory().stream().map(h->new InterdepartmentRequestResponse.StatusHistory(h.getFromStatus(),h.getToStatus(),h.getChangedBy().getId(),h.getChangedBy().getName(),h.getChangedAt(),h.getNote())).toList(),files);}
+    private InterdepartmentRequestResponse toResponse(InterdepartmentRequest r, List<InterdepartmentRequestResponse.Attachment> files){return new InterdepartmentRequestResponse(r.getId(),r.getRequestingDepartment().getName(),r.getTargetDepartment().getName(),r.getCreatedBy().getId(),r.getCreatedBy().getName(),r.getAssignedTo()==null?null:r.getAssignedTo().getId(),r.getAssignedTo()==null?null:r.getAssignedTo().getName(),r.getTitle(),r.getDescription(),r.getPriority(),r.getNeededBy(),r.getStatus(),r.getCreatedAt(),r.getUpdatedAt(),r.getAcknowledgedAt(),r.getCompletedAt(),r.getRejectionReason(),r.getLinkedTaskId(),r.getArchivedAt(),r.getStatusHistory().stream().map(h->new InterdepartmentRequestResponse.StatusHistory(h.getFromStatus(),h.getToStatus(),h.getChangedBy().getId(),h.getChangedBy().getName(),h.getChangedAt(),h.getNote())).toList(),files,r.getCoTargetDepartment()==null?null:r.getCoTargetDepartment().getName());}
 }

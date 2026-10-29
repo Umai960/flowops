@@ -4,6 +4,7 @@ import FlowOpsLogo from "./FlowOpsLogo";
 import ConnectionStatus from "./ConnectionStatus";
 import { useNotifications } from "../context/NotificationContext";
 import { useChat } from "../context/ChatContext";
+import { roleLabel } from "./roleLabel";
 import { getNavigationItems } from "./navigationModel";
 
 const icons = {
@@ -59,7 +60,7 @@ function AppShell({ user, activeView, onNavigate, onNotificationNavigate, onLogo
       </nav>
       <div className="sidebar-spacer" />
       <div className="sidebar-footer">
-        <div className="sidebar-profile" title={`${user?.name || user?.email || "User"} · ${user?.role || ""}${user?.departmentName ? ` · ${user.departmentName}` : ""}`}><div className="avatar">{(user?.name || user?.email || "K").slice(0, 1).toUpperCase()}</div><div className="profile-copy"><strong>{user?.name || user?.email || "User"}</strong><span>{user?.role}{user?.departmentName ? ` · ${user.departmentName}` : ""}</span></div></div>
+        <div className="sidebar-profile" title={`${user?.name || user?.email || "User"} · ${roleLabel(user?.role)}${user?.departmentName ? ` · ${user.departmentName}` : ""}`}><div className="avatar">{(user?.name || user?.email || "K").slice(0, 1).toUpperCase()}</div><div className="profile-copy"><strong>{user?.name || user?.email || "User"}</strong><span>{roleLabel(user?.role)}{user?.departmentName ? ` · ${user.departmentName}` : ""}</span></div></div>
         <button type="button" className="sidebar-logout" aria-label="Sign out" title={collapsed ? "Sign out" : undefined} onClick={onLogout}><span className="logout-symbol">↪</span><span>Sign out</span></button>
         <button type="button" className="sidebar-collapse" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((value) => { const next = !value; try { localStorage.setItem(SIDEBAR_KEY, next ? "collapsed" : "open"); } catch { /* Preference only. */ } return next; })}><Icon name={collapsed ? "chevronRight" : "chevronLeft"} /><span>{collapsed ? "Expand" : "Collapse"}</span></button>
       </div>

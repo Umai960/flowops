@@ -101,7 +101,7 @@ public class AuthorizationService {
                 && targetStatus == com.company.kanban.entity.TaskStatus.DONE) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "Staff tasks must be approved by a manager before completion"
+                    "Staff tasks must be approved by a HOD before completion"
             );
         }
     }

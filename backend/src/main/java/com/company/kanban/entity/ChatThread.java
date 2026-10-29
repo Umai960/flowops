@@ -29,6 +29,11 @@ public class ChatThread {
     @JoinColumn(name = "other_department_id")
     private Department otherDepartment;
 
+    // A second receiving department (PROD_1 on RDD requests), which can read the chat like otherDepartment.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "third_department_id")
+    private Department thirdDepartment;
+
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -59,6 +64,8 @@ public class ChatThread {
     public void setDepartment(Department department) { this.department = department; }
     public Department getOtherDepartment() { return otherDepartment; }
     public void setOtherDepartment(Department otherDepartment) { this.otherDepartment = otherDepartment; }
+    public Department getThirdDepartment() { return thirdDepartment; }
+    public void setThirdDepartment(Department thirdDepartment) { this.thirdDepartment = thirdDepartment; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getLastMessagePreview() { return lastMessagePreview; }

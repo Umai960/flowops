@@ -52,7 +52,7 @@ function LegacyStaffDashboard({ user, refreshKey, onOpenKanban, onOpenReport }) 
     <div className="kpi-grid">
       <Kpi label="My tasks" value={active.length} detail="To Do, In Progress and Review" />
       <Kpi label="Doing" value={statusCount("DOING")} detail="In progress now" />
-      <Kpi label="Waiting for review" value={statusCount("REVIEW")} detail="Awaiting manager action" />
+      <Kpi label="Waiting for review" value={statusCount("REVIEW")} detail="Awaiting HOD action" />
       <Kpi label="Due soon / overdue" value={active.filter((task) => dueLabel(task)).length} detail="Next 3 days" tone={active.some((task) => dueLabel(task)) ? "warning" : ""} />
     </div>
     <div className="dashboard-columns">

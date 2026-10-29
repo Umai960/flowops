@@ -37,7 +37,7 @@ public class ChatService {
             Map.entry("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
             Map.entry("csv", "text/csv"), Map.entry("txt", "text/plain"), Map.entry("zip", "application/zip"));
 
-    private record Subject(ChatSubjectType type, Long id, String title, Department department, Department otherDepartment, List<User> watchers) {}
+    private record Subject(ChatSubjectType type, Long id, String title, Department department, Department otherDepartment, Department thirdDepartment, List<User> watchers) {}
 
     private final ChatThreadRepository threads;
     private final ChatParticipantRepository participants;
@@ -62,13 +62,13 @@ public class ChatService {
     public ChatView view(ChatSubjectType type, Long subjectId, Long beforeId, User user) {
         Subject subject = readableSubject(type, subjectId, user);
         ChatThread thread = threads.findBySubjectTypeAndSubjectId(type, subjectId).orElse(null);
-        if (thread == null) return new ChatView(type, subjectId, subject.title(), departmentLabel(subject.department(), subject.otherDepartment()), List.of(), List.of(), false);
+        if (thread == null) return new ChatView(type, subjectId, subject.title(), departmentLabel(subject.department(), subject.otherDepartment(), subject.thirdDepartment()), List.of(), List.of(), false);
         refresh(thread, subject);
         List<ChatMessage> page = messages.findPageBefore(thread.getId(), beforeId == null ? Long.MAX_VALUE : beforeId, PageRequest.of(0, PAGE_SIZE + 1));
         boolean hasMore = page.size() > PAGE_SIZE;
         List<ChatMessageResponse> ordered = new ArrayList<>(page.stream().limit(PAGE_SIZE).map(this::toResponse).toList());
         Collections.reverse(ordered);
-        return new ChatView(type, subjectId, thread.getTitle(), departmentLabel(thread.getDepartment(), thread.getOtherDepartment()), people(thread), ordered, hasMore);
+        return new ChatView(type, subjectId, thread.getTitle(), departmentLabel(thread.getDepartment(), thread.getOtherDepartment(), thread.getThirdDepartment()), people(thread), ordered, hasMore);
     }
 
     @Transactional(readOnly = true)
@@ -117,7 +117,7 @@ public class ChatService {
     public void deleteMessage(Long messageId, User user) {
         ChatMessage message = messages.findById(messageId).orElseThrow(() -> notFound("Message not found"));
         ChatThread thread = message.getThread();
-        if (!canRead(user, thread.getDepartment(), thread.getOtherDepartment(), thread)) throw notFound("Message not found");
+        if (!canRead(user, thread)) throw notFound("Message not found");
         if (!authorizationService.isAdmin(user) && !message.getSender().getId().equals(user.getId()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete your own messages");
         if (message.isDeleted()) return;
@@ -133,7 +133,7 @@ public class ChatService {
     public AttachmentDownload attachment(Long messageId, User user) {
         ChatMessage message = messages.findById(messageId).orElseThrow(() -> notFound("File not found"));
         ChatThread thread = message.getThread();
-        if (!canRead(user, thread.getDepartment(), thread.getOtherDepartment(), thread) || !message.hasAttachment()) throw notFound("File not found");
+        if (!canRead(user, thread) || !message.hasAttachment()) throw notFound("File not found");
         ChatAttachment attachment = attachments.findByMessageId(messageId).orElseThrow(() -> notFound("File not found"));
         return new AttachmentDownload(message.getAttachmentName(), message.getAttachmentContentType(), attachment.getData());
     }
@@ -173,7 +173,7 @@ public class ChatService {
         // Chats left from 1.3.0 tasks and planning items can no longer be opened, so they are not listed.
         return found.stream().filter(thread -> thread.getSubjectType() == ChatSubjectType.REQUEST)
                 .map(thread -> new ChatThreadSummary(thread.getSubjectType(), thread.getSubjectId(), thread.getTitle(),
-                departmentLabel(thread.getDepartment(), thread.getOtherDepartment()), thread.getLastMessagePreview(), thread.getLastMessageAt(),
+                departmentLabel(thread.getDepartment(), thread.getOtherDepartment(), thread.getThirdDepartment()), thread.getLastMessagePreview(), thread.getLastMessageAt(),
                 unread.getOrDefault(thread.getId(), 0L))).toList();
     }
 
@@ -227,9 +227,9 @@ public class ChatService {
 
     private Subject readableSubject(ChatSubjectType type, Long subjectId, User user) {
         Subject subject = type != ChatSubjectType.REQUEST ? null : requestRepository.findById(subjectId).map(request -> new Subject(type, subjectId,
-                request.getTitle(), request.getRequestingDepartment(), request.getTargetDepartment(), requestWatchers(request))).orElse(null);
+                request.getTitle(), request.getRequestingDepartment(), request.getTargetDepartment(), request.getCoTargetDepartment(), requestWatchers(request))).orElse(null);
         // A chat the user may not read is reported as missing so its existence is not revealed.
-        if (subject == null || !canRead(user, subject.department(), subject.otherDepartment(), threads.findBySubjectTypeAndSubjectId(type, subjectId).orElse(null)))
+        if (subject == null || !canRead(user, subject.department(), subject.otherDepartment(), subject.thirdDepartment(), threads.findBySubjectTypeAndSubjectId(type, subjectId).orElse(null)))
             throw notFound("Chat not found");
         return subject;
     }
@@ -238,14 +238,22 @@ public class ChatService {
     private List<User> requestWatchers(InterdepartmentRequest request) {
         List<User> people = new ArrayList<>(List.of(request.getCreatedBy()));
         if (request.getAssignedTo() != null) people.add(request.getAssignedTo());
-        else people.addAll(userRepository.findByDepartmentIdAndRole(request.getTargetDepartment().getId(), Role.MANAGER));
+        else {
+            people.addAll(userRepository.findByDepartmentIdAndRole(request.getTargetDepartment().getId(), Role.MANAGER));
+            if (request.getCoTargetDepartment() != null) people.addAll(userRepository.findByDepartmentIdAndRole(request.getCoTargetDepartment().getId(), Role.MANAGER));
+        }
         return watchers(people.toArray(User[]::new));
     }
 
-    private boolean canRead(User user, Department department, Department otherDepartment, ChatThread thread) {
+    private boolean canRead(User user, ChatThread thread) {
+        return canRead(user, thread.getDepartment(), thread.getOtherDepartment(), thread.getThirdDepartment(), thread);
+    }
+
+    private boolean canRead(User user, Department department, Department otherDepartment, Department thirdDepartment, ChatThread thread) {
         if (authorizationService.isAdmin(user)) return true;
         if (department != null && authorizationService.canAccessDepartment(user, department.getId())) return true;
         if (otherDepartment != null && authorizationService.canAccessDepartment(user, otherDepartment.getId())) return true;
+        if (thirdDepartment != null && authorizationService.canAccessDepartment(user, thirdDepartment.getId())) return true;
         return thread != null && thread.getId() != null && participants.existsByThreadIdAndUserId(thread.getId(), user.getId());
     }
 
@@ -253,6 +261,7 @@ public class ChatService {
         ChatThread thread = threads.findBySubjectTypeAndSubjectId(subject.type(), subject.id()).orElse(null);
         if (thread != null) { refresh(thread, subject); return thread; }
         thread = threads.save(new ChatThread(subject.type(), subject.id(), truncate(subject.title(), 200), subject.department(), subject.otherDepartment()));
+        thread.setThirdDepartment(subject.thirdDepartment());
         for (User watcher : subject.watchers()) follow(thread, watcher);
         return thread;
     }
@@ -264,6 +273,8 @@ public class ChatService {
             thread.setDepartment(subject.department());
         if (subject.otherDepartment() != null && (thread.getOtherDepartment() == null || !thread.getOtherDepartment().getId().equals(subject.otherDepartment().getId())))
             thread.setOtherDepartment(subject.otherDepartment());
+        if (subject.thirdDepartment() != null && (thread.getThirdDepartment() == null || !thread.getThirdDepartment().getId().equals(subject.thirdDepartment().getId())))
+            thread.setThirdDepartment(subject.thirdDepartment());
     }
 
     private boolean follow(ChatThread thread, User user) {
@@ -284,6 +295,7 @@ public class ChatService {
         Set<Long> departmentIds = new HashSet<>();
         if (thread.getDepartment() != null) departmentIds.add(thread.getDepartment().getId());
         if (thread.getOtherDepartment() != null) departmentIds.add(thread.getOtherDepartment().getId());
+        if (thread.getThirdDepartment() != null) departmentIds.add(thread.getThirdDepartment().getId());
         events.publishEvent(new ChatEventBroker.Delivery(new ChatEvent(kind, thread.getSubjectType(), thread.getSubjectId(), message), departmentIds, ids));
     }
 
@@ -348,9 +360,11 @@ public class ChatService {
 
     private static String departmentName(Department department) { return department == null ? null : department.getName(); }
 
-    private static String departmentLabel(Department department, Department otherDepartment) {
-        if (otherDepartment == null || department == null) return departmentName(department == null ? otherDepartment : department);
-        return department.getName() + " → " + otherDepartment.getName();
+    private static String departmentLabel(Department department, Department otherDepartment, Department thirdDepartment) {
+        String receiving = otherDepartment == null ? departmentName(thirdDepartment)
+                : thirdDepartment == null ? otherDepartment.getName() : otherDepartment.getName() + ", " + thirdDepartment.getName();
+        if (receiving == null || department == null) return department == null ? receiving : department.getName();
+        return department.getName() + " → " + receiving;
     }
     private static ResponseStatusException notFound(String message) { return new ResponseStatusException(HttpStatus.NOT_FOUND, message); }
     private static ResponseStatusException badRequest(String message) { return new ResponseStatusException(HttpStatus.BAD_REQUEST, message); }
