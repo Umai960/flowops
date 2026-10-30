@@ -185,6 +185,7 @@ public class TaskService {
         task.setCreatedBy(currentUser);
         if (generalTask) task.setDepartment(taskDepartment);
         task.setWorkload(request.workload());
+        task.setColor(ItemColors.normalize(request.color()));
         task.setStatus(generalTask ? TaskStatus.DRAFT : statusFromColumn(column));
 
         Task savedTask = taskRepository.save(task);
@@ -239,6 +240,7 @@ public class TaskService {
         task.setDueDate(request.dueDate());
         task.setAssignee(assignee);
         task.setWorkload(request.workload());
+        task.setColor(ItemColors.normalize(request.color()));
 
         Task savedTask = taskRepository.save(task);
 
@@ -576,7 +578,8 @@ public class TaskService {
 
                 department == null ? null : department.getId(),
                 department == null ? null : department.getName(),
-                task.isGeneralTask()
+                task.isGeneralTask(),
+                task.getColor()
         );
     }
 

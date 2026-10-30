@@ -35,7 +35,8 @@ public record TaskResponse(
 
         Long departmentId,
         String departmentName,
-        boolean generalTask
+        boolean generalTask,
+        String color
 
 ) {
 }

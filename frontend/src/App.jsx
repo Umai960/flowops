@@ -6,6 +6,7 @@ import ConfirmDeleteModal from "./components/ConfirmDeleteModal";
 import ConfirmDeleteBoardModal from "./components/ConfirmDeleteBoardModal";
 import EditBoardModal from "./components/EditBoardModal";
 import EditTaskModal from "./components/EditTaskModal";
+import { taskColorClass } from "./components/TaskColorPicker";
 import LoginPage from "./components/LoginPage";
 import AppShell from "./components/AppShell";
 import PersonalKanban from "./pages/PersonalKanban";
@@ -1012,7 +1013,7 @@ function App() {
                   <div key={task.id} className="task-wrapper">
                     {dropIndicator?.status === status && dropIndicator?.taskId === task.id && dropIndicator?.position === "before" && <div className="drop-indicator" />}
                     <div
-                      className={`task-card priority-card-${String(task.priority || "MEDIUM").toLowerCase()} ${draggedTask?.id === task.id ? "task-card--dragging" : ""}`}
+                      className={`task-card priority-card-${String(task.priority || "MEDIUM").toLowerCase()}${taskColorClass(task)} ${draggedTask?.id === task.id ? "task-card--dragging" : ""}`}
                       data-general-task-id={task.id}
                       data-general-status={status}
                       onPointerDown={(event) => handlePointerDown(event, task)}
@@ -1049,7 +1050,7 @@ function App() {
                       )}
 
                     <div
-                      className={`task-card priority-card-${String(task.priority || "MEDIUM").toLowerCase()} ${task.departmentName?.toUpperCase() === "RDD" ? "task-card--rdd" : ""} ${
+                      className={`task-card priority-card-${String(task.priority || "MEDIUM").toLowerCase()}${taskColorClass(task)} ${task.departmentName?.toUpperCase() === "RDD" ? "task-card--rdd" : ""} ${
                         draggedTask?.id === task.id ? "task-card--dragging" : ""
                       } ${
                         task.assigneeId === user?.userId ? "" : "task-card--read-only"

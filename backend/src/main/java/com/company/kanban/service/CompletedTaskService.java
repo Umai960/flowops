@@ -37,6 +37,6 @@ public class CompletedTaskService {
         return new TaskResponse(t.getId(), t.getTitle(), t.getDescription(), t.getPriority(), t.getStatus(), t.getWorkload(), t.getDueDate(), t.getPosition(),
                 c == null ? null : c.getBoard().getId(), c == null ? "General Task" : c.getBoard().getName(), c == null ? null : c.getId(), c == null ? null : c.getName(),
                 a == null ? null : a.getId(), a == null ? null : a.getName(), creator == null ? null : creator.getId(), creator == null ? null : creator.getName(),
-                t.getCreatedAt(), t.getUpdatedAt(), t.getCompletedAt(), d == null ? null : d.getId(), d == null ? null : d.getName(), t.isGeneralTask());
+                t.getCreatedAt(), t.getUpdatedAt(), t.getCompletedAt(), d == null ? null : d.getId(), d == null ? null : d.getName(), t.isGeneralTask(), t.getColor());
     }
 }

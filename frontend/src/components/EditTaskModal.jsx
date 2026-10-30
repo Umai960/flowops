@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api/apiFetch";
 import RddTaskActions from "./RddTaskActions";
+import TaskColorPicker from "./TaskColorPicker";
 
 const API_BASE_URL = "";
 
@@ -13,6 +14,7 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
     task?.assigneeId != null ? String(task.assigneeId) : ""
   );
   const [workload, setWorkload] = useState(String(task?.workload ?? 3));
+  const [color, setColor] = useState(task?.color || "");
   const [error, setError] = useState("");
   const [checkpoints, setCheckpoints] = useState([]);
   const [checkpointTitle, setCheckpointTitle] = useState("");
@@ -41,6 +43,7 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
           dueDate: dueDate || null,
           assigneeId: assigneeId === "" ? null : Number(assigneeId),
           workload: Number(workload),
+          color: color || null,
         }),
       });
 
@@ -145,6 +148,8 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
               />
             </div>
           </div>
+
+          <TaskColorPicker name="edit-task-color" value={color} onChange={setColor} />
 
           <label htmlFor="edit-task-workload">Workload</label>
           <select

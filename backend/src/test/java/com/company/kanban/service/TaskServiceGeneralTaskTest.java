@@ -196,6 +196,14 @@ class TaskServiceGeneralTaskTest {
         verify(notifications).notifyReviewResult(general, ppcManager, true);
     }
 
+    @Test
+    void tasksKeepAChosenColourAndRejectUnknownOnes() {
+        when(users.findById(1L)).thenReturn(Optional.of(ppcStaff));
+        assertEquals("blue", service.createTask(new CreateTaskRequest("Coloured", null, Priority.LOW, null, null, 10L, 1L, 3, " Blue "), ppcStaff).color());
+        assertNull(service.createTask(request(null, 10L, 1L), ppcStaff).color());
+        assertThrows(ResponseStatusException.class, () -> service.createTask(new CreateTaskRequest("Coloured", null, Priority.LOW, null, null, 10L, 1L, 3, "#00ff00"), ppcStaff));
+    }
+
     private CreateTaskRequest request(Long columnId, Long departmentId, Long assigneeId) {
         return new CreateTaskRequest("Follow up supplier quotation", "Call supplier", Priority.HIGH,
                 LocalDate.of(2026, 8, 22), columnId, departmentId, assigneeId, 3);
