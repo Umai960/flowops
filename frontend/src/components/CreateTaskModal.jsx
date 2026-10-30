@@ -14,7 +14,7 @@ const INITIAL_FORM = {
   workload: "3",
 };
 
-function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, generalOnly = false, canChooseGeneral = false, users, user, onClose, onCreated }) {
+function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, generalOnly = false, canChooseGeneral = false, assignToSelf = false, users, user, onClose, onCreated }) {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [projectColumns, setProjectColumns] = useState([]);
   const [error, setError] = useState("");
@@ -26,10 +26,10 @@ function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, gen
         ...current,
         scope: generalOnly || (!boards.length && canChooseGeneral) ? "GENERAL" : "PROJECT",
         projectId: String(board?.id ?? boards[0]?.id ?? ""),
-        assigneeId: user?.role === "STAFF" ? String(user.userId) : "",
+        assigneeId: assignToSelf || user?.role === "STAFF" ? String(user.userId) : "",
       }));
     }
-  }, [generalOnly, isOpen, user, board, boards, canChooseGeneral]);
+  }, [generalOnly, isOpen, user, board, boards, canChooseGeneral, assignToSelf]);
 
   useEffect(() => {
     if (!isOpen || generalOnly || !formData.projectId) return;
@@ -231,6 +231,7 @@ function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, gen
             </div>
           </div>
 
+          {!assignToSelf && <>
           <label htmlFor="task-workload">Workload</label>
           <select
             id="task-workload"
@@ -263,6 +264,7 @@ function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, gen
           {user?.role === "STAFF" && (
             <small className="form-help">Created by {user.name || user.email}. Staff can assign to themselves or same-department staff.</small>
           )}
+          </>}
 
           {error && (
             <p className="form-error" role="alert">

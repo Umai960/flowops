@@ -312,6 +312,7 @@ function PersonalKanban({ user, users = [], departments = [] }) {
       <CreateTaskModal
         isOpen={showCreateGeneral}
         generalOnly
+        assignToSelf
         departmentId={userDepartment?.id}
         users={users}
         user={user}
