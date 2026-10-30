@@ -29,10 +29,16 @@ public record UpdateTaskRequest(
         Integer workload,
 
         @Size(max = 16)
-        String color
+        String color,
+
+        LocalDate startDate
 
 ) {
     public UpdateTaskRequest(String title, String description, Priority priority, LocalDate dueDate, Long assigneeId, Integer workload) {
         this(title, description, priority, dueDate, assigneeId, workload, null);
+    }
+
+    public UpdateTaskRequest(String title, String description, Priority priority, LocalDate dueDate, Long assigneeId, Integer workload, String color) {
+        this(title, description, priority, dueDate, assigneeId, workload, color, null);
     }
 }

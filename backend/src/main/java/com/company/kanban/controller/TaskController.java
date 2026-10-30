@@ -5,6 +5,7 @@ import com.company.kanban.dto.MoveTaskRequest;
 import com.company.kanban.dto.TaskResponse;
 import com.company.kanban.dto.UpdateTaskRequest;
 import com.company.kanban.dto.UpdateTaskStatusRequest;
+import com.company.kanban.dto.UpdateTaskDatesRequest;
 import com.company.kanban.dto.ReviewActionRequest;
 import com.company.kanban.dto.ReassignTaskRequest;
 import com.company.kanban.dto.ReviewQueueItem;
@@ -120,6 +121,15 @@ public class TaskController {
             @Valid @RequestBody ReassignTaskRequest request,
             @AuthenticationPrincipal User currentUser) {
         return taskService.reassignTask(taskId, request, currentUser);
+    }
+
+    @PutMapping("/{taskId}/dates")
+    public TaskResponse updateTaskDates(
+            @PathVariable Long taskId,
+            @RequestBody UpdateTaskDatesRequest request,
+            @AuthenticationPrincipal User currentUser) {
+
+        return taskService.updateTaskDates(taskId, request, currentUser);
     }
 
     @PutMapping("/{taskId}")

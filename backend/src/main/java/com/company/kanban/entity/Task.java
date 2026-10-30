@@ -31,6 +31,9 @@ public class Task {
     @Column(length = 16)
     private String color;
 
+    // Optional; the Gantt chart falls back to the creation date when it is empty.
+    private LocalDate startDate;
+
     private LocalDate dueDate;
 
     @Column(nullable = false)
@@ -180,6 +183,10 @@ public class Task {
     public void setDueDate(LocalDate dueDate) {
         this.dueDate = dueDate;
     }
+
+    public LocalDate getStartDate() { return startDate; }
+
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
 
     public void setPosition(Integer position) {
         this.position = position;

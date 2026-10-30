@@ -34,10 +34,16 @@ public record CreateTaskRequest(
         Integer workload,
 
         @Size(max = 16)
-        String color
+        String color,
+
+        LocalDate startDate
 
 ) {
     public CreateTaskRequest(String title, String description, Priority priority, LocalDate dueDate, Long columnId, Long departmentId, Long assigneeId, Integer workload) {
         this(title, description, priority, dueDate, columnId, departmentId, assigneeId, workload, null);
+    }
+
+    public CreateTaskRequest(String title, String description, Priority priority, LocalDate dueDate, Long columnId, Long departmentId, Long assigneeId, Integer workload, String color) {
+        this(title, description, priority, dueDate, columnId, departmentId, assigneeId, workload, color, null);
     }
 }

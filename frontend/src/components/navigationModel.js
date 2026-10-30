@@ -5,11 +5,11 @@ export function getNavigationItems(user) {
   const canSeeProjects = canSeeTeam || user?.role === "STAFF";
   const canSeeRequests = isAdmin || ["RDD", "PPC", "PROD_1"].includes(user?.departmentName?.toUpperCase());
   if (canSeePpc && !isAdmin) return placeCompletedSecondLast([
-    ["dashboard", "Dashboard"], ["personal", "My Kanban"], ["project", "Projects"], ["ppc-arrivals", "Raw Material Arrival"], ["ppc-planning", "Planning"], ["chat", "Chat"], ["requests", "Requests"], ["completed", "Completed Tasks"],
+    ["dashboard", "Dashboard"], ["personal", "My Kanban"], ["project", "Projects"], ["gantt", "Gantt"], ["ppc-arrivals", "Raw Material Arrival"], ["ppc-planning", "Planning"], ["chat", "Chat"], ["requests", "Requests"], ["completed", "Completed Tasks"],
     ...(canSeeTeam ? [["staff", "Team"]] : []), ...(user?.role === "MANAGER" ? [["reviews", "Reviews"]] : []), ["report", "Monthly Reports"], ["desktop-notifications", "Desktop Notifications"],
   ], user);
   return placeCompletedSecondLast([
-    ["dashboard", "Dashboard"], ...(!isAdmin ? [["personal", "My Kanban"]] : []), ["completed", "Completed Tasks"], ...(canSeeRequests ? [["requests", "Requests"]] : []), ...(canSeeProjects ? [["project", "Projects"]] : []), ["ppc-planning", "Planning"], ["chat", "Chat"], ...(canSeeTeam ? [["staff", "Team"]] : []),
+    ["dashboard", "Dashboard"], ...(!isAdmin ? [["personal", "My Kanban"]] : []), ["completed", "Completed Tasks"], ...(canSeeRequests ? [["requests", "Requests"]] : []), ...(canSeeProjects ? [["project", "Projects"], ["gantt", "Gantt"]] : []), ["ppc-planning", "Planning"], ["chat", "Chat"], ...(canSeeTeam ? [["staff", "Team"]] : []),
     ...(user?.role === "MANAGER" ? [["reviews", "Reviews"]] : []), ["report", "Monthly Reports"], ["desktop-notifications", "Desktop Notifications"],
     ...(isAdmin ? [["users-admin", "Users"], ["data-management", "Data Management"], ["client-access", "Client Access"]] : []),
   ], user);

@@ -74,6 +74,17 @@ public interface TaskRepository
 
     @org.springframework.data.jpa.repository.Query("""
             select distinct t from Task t
+            join fetch t.column c
+            join fetch c.board b
+            join fetch b.department bd
+            left join fetch t.assignee a
+            left join fetch t.createdBy cb
+            order by t.id
+            """)
+    List<Task> findAllProjectTasks();
+
+    @org.springframework.data.jpa.repository.Query("""
+            select distinct t from Task t
             left join fetch t.column c
             left join fetch c.board b
             left join fetch b.department d

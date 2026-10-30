@@ -1713,3 +1713,25 @@
 .task-card.task-color-yellow { background:#fef7d6; border-color:#f3df8a; }
 .task-card.task-color-pink { background:#fde8f2; border-color:#f6bdd8; }
 .task-card.task-color-gray { background:#f0f1f3; border-color:#d1d5db; }
+
+/* Gantt chart */
+.gantt-page { width: 100%; max-width: 1760px; margin: 0 auto; }
+.gantt-export-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+.gantt-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:14px; }
+.gantt-scale { display:inline-flex; border:1px solid var(--color-border); border-radius:8px; overflow:hidden; background:var(--color-surface); }
+.gantt-scale button { min-height:36px; padding:6px 14px; border:0; border-right:1px solid var(--color-border); background:transparent; color:var(--color-text); font-weight:600; cursor:pointer; }
+.gantt-scale button:last-child { border-right:0; }
+.gantt-scale button.is-active { background:#2f6feb; color:#fff; }
+.gantt-legend { display:inline-flex; align-items:center; gap:8px; color:var(--color-text-muted); font-size:13px; }
+.gantt-legend-estimated { display:inline-block; width:26px; height:12px; border:1px dashed #2f8d9d; border-radius:3px; background:rgba(47,141,157,.28); }
+.gantt-card { min-width:0; overflow:hidden; border:1px solid var(--color-border); border-radius:14px; background:#fff; box-shadow:var(--shadow-sm); }
+.gantt-body { display:flex; max-height:calc(100vh - 290px); min-height:240px; overflow-y:auto; }
+.gantt-labels { flex:0 0 auto; position:sticky; left:0; }
+.gantt-project-label { cursor:pointer; }
+.gantt-scroll { flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden; }
+.gantt-timeline { display:block; touch-action:pan-y; user-select:none; }
+.gantt-bar-move { cursor:grab; }
+.gantt-timeline.is-dragging, .gantt-timeline.is-dragging .gantt-bar-move { cursor:grabbing; }
+.gantt-bar-resize { cursor:ew-resize; }
+.gantt-empty { padding:40px; text-align:center; color:var(--color-text-muted); }
+@media (max-width:760px) { .gantt-body { max-height:none; overflow-x:auto; } .gantt-scroll { flex:none; overflow:visible; } .gantt-labels { position:static; } .gantt-legend { font-size:12px; } }
