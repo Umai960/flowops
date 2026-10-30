@@ -28,6 +28,9 @@ public class Task {
 
     private Integer workload;
 
+    @Column(length = 16)
+    private String color;
+
     private LocalDate dueDate;
 
     @Column(nullable = false)
@@ -197,6 +200,10 @@ public class Task {
     public void setStatus(TaskStatus status) {
         this.status = status;
     }
+
+    public String getColor() { return color; }
+
+    public void setColor(String color) { this.color = color; }
 
     public void setWorkload(Integer workload) {
         this.workload = workload;

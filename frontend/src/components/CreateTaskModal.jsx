@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../api/apiFetch";
+import TaskColorPicker from "./TaskColorPicker";
 
 const API_BASE_URL = "";
 
@@ -12,6 +13,7 @@ const INITIAL_FORM = {
   dueDate: "",
   assigneeId: "",
   workload: "3",
+  color: "",
 };
 
 function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, generalOnly = false, canChooseGeneral = false, assignToSelf = false, users, user, onClose, onCreated }) {
@@ -98,6 +100,7 @@ function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, gen
           departmentId: isGeneral ? Number(generalDepartmentId) : null,
           assigneeId: Number(formData.assigneeId),
           workload: Number(formData.workload),
+          color: formData.color || null,
         }),
       });
 
@@ -230,6 +233,8 @@ function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, gen
               />
             </div>
           </div>
+
+          <TaskColorPicker name="task-color" value={formData.color} onChange={(color) => setFormData((current) => ({ ...current, color }))} />
 
           {!assignToSelf && <>
           <label htmlFor="task-workload">Workload</label>

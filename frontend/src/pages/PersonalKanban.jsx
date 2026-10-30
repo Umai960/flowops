@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../api/apiFetch";
 import CreateTaskModal from "../components/CreateTaskModal";
+import { taskColorClass } from "../components/TaskColorPicker";
 import RddTaskActions from "../components/RddTaskActions";
 import DeleteDoneTaskButton from "../components/DeleteDoneTaskButton";
 
@@ -253,7 +254,7 @@ function PersonalKanban({ user, users = [], departments = [] }) {
                       )}
 
                     <div
-                      className={`task-card priority-card-${String(task.priority || "MEDIUM").toLowerCase()} ${
+                      className={`task-card priority-card-${String(task.priority || "MEDIUM").toLowerCase()}${taskColorClass(task)} ${
                         draggedTaskId === task.id ? "task-card--dragging" : ""
                       }`}
                       data-personal-task-id={task.id}
@@ -298,7 +299,7 @@ function PersonalKanban({ user, users = [], departments = [] }) {
             width: `${dragPreview.width}px`,
           }}
         >
-          <div className={`task-card drag-preview-card priority-card-${String(dragPreview.task.priority || "MEDIUM").toLowerCase()}`}>
+          <div className={`task-card drag-preview-card priority-card-${String(dragPreview.task.priority || "MEDIUM").toLowerCase()}${taskColorClass(dragPreview.task)}`}>
             <h3 title={dragPreview.task.title}>{dragPreview.task.title}</h3>
             <small className="task-board-name">{dragPreview.task.generalTask ? "GENERAL · PPC" : dragPreview.task.boardName}</small>
             <p>{dragPreview.task.description}</p>

@@ -98,14 +98,7 @@ public class PpcPlanningService {
     private String clean(String value) { return value == null || value.isBlank() ? null : value.trim(); }
     private ResponseStatusException badRequest(String message) { return new ResponseStatusException(HttpStatus.BAD_REQUEST, message); }
 
-    private static final java.util.Set<String> COLORS = java.util.Set.of("blue", "green", "orange", "red", "purple", "yellow", "pink", "gray");
 
     /** Accepts one of the calendar's colour keys; anything else (or blank) means the default colour. */
-    private String color(String value) {
-        String key = clean(value);
-        if (key == null) return null;
-        key = key.toLowerCase(java.util.Locale.ROOT);
-        if (!COLORS.contains(key)) throw badRequest("Unknown colour");
-        return key;
-    }
+    private String color(String value) { return ItemColors.normalize(value); }
 }

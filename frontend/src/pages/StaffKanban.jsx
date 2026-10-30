@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../api/apiFetch";
 import RddTaskActions from "../components/RddTaskActions";
 import DeleteDoneTaskButton from "../components/DeleteDoneTaskButton";
+import { taskColorClass } from "../components/TaskColorPicker";
 
 const API_BASE_URL = "";
 const compactDate = (value) => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", timeZone: "Asia/Kuala_Lumpur" }).format(new Date(`${value}T00:00:00+08:00`)) : "";
@@ -92,7 +93,7 @@ function StaffKanban({ staffUser, currentUser, refreshKey, onTaskSelected, onTas
                   .filter((task) => task.status === status.value)
                   .map((task) => (
                     <div
-                      className={`task-card staff-task-card priority-card-${String(task.priority || "MEDIUM").toLowerCase()}`}
+                      className={`task-card staff-task-card priority-card-${String(task.priority || "MEDIUM").toLowerCase()}${taskColorClass(task)}`}
                       key={task.id}
                       onClick={() => onTaskSelected(task)}
                       role="button"

@@ -1702,3 +1702,14 @@
 .request-chat-toggle { margin-top:12px; }
 .request-chat { margin-top:12px; padding-top:12px; border-top:1px solid var(--color-border); }
 .request-chat .chat-messages { height:min(45vh, 360px); }
+
+/* Task card colours (same palette as Planning items) */
+.planning-color-swatch.task-color-default-swatch { background:#fff; box-shadow:inset 0 0 0 1px #cbd5e1; }
+.task-card.task-color-blue { background:#e8f0fe; border-color:#bfd3fb; }
+.task-card.task-color-green { background:#e7f7ec; border-color:#b7e4c4; }
+.task-card.task-color-orange { background:#fff1e3; border-color:#fbd2a8; }
+.task-card.task-color-red { background:#fdeaea; border-color:#f6c1c1; }
+.task-card.task-color-purple { background:#f1eafe; border-color:#d6c4fb; }
+.task-card.task-color-yellow { background:#fef7d6; border-color:#f3df8a; }
+.task-card.task-color-pink { background:#fde8f2; border-color:#f6bdd8; }
+.task-card.task-color-gray { background:#f0f1f3; border-color:#d1d5db; }

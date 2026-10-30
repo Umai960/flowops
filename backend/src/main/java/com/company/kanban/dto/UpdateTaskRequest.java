@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
@@ -25,7 +26,13 @@ public record UpdateTaskRequest(
         @NotNull
         @Min(1)
         @Max(5)
-        Integer workload
+        Integer workload,
+
+        @Size(max = 16)
+        String color
 
 ) {
+    public UpdateTaskRequest(String title, String description, Priority priority, LocalDate dueDate, Long assigneeId, Integer workload) {
+        this(title, description, priority, dueDate, assigneeId, workload, null);
+    }
 }
