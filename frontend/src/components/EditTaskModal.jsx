@@ -9,6 +9,7 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
   const [title, setTitle] = useState(task?.title || "");
   const [description, setDescription] = useState(task?.description || "");
   const [priority, setPriority] = useState(task?.priority || "MEDIUM");
+  const [startDate, setStartDate] = useState(task?.startDate || "");
   const [dueDate, setDueDate] = useState(task?.dueDate || "");
   const [assigneeId, setAssigneeId] = useState(
     task?.assigneeId != null ? String(task.assigneeId) : ""
@@ -33,6 +34,11 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
     event.preventDefault();
     setError("");
 
+    if (startDate && dueDate && startDate > dueDate) {
+      setError("Start date must be on or before the due date.");
+      return;
+    }
+
     try {
       const response = await apiFetch(`${API_BASE_URL}/api/tasks/${task.id}`, {
         method: "PUT",
@@ -40,6 +46,7 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
           title,
           description,
           priority,
+          startDate: startDate || null,
           dueDate: dueDate || null,
           assigneeId: assigneeId === "" ? null : Number(assigneeId),
           workload: Number(workload),
@@ -124,18 +131,26 @@ function EditTaskModal({ task, users, user, onClose, onTaskUpdated, onDelete, ca
             rows="4"
           />
 
+          <label htmlFor="edit-task-priority">Priority</label>
+          <select
+            id="edit-task-priority"
+            value={priority}
+            onChange={(event) => setPriority(event.target.value)}
+          >
+            <option value="LOW">LOW</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="HIGH">HIGH</option>
+          </select>
+
           <div className="form-field-row">
             <div className="form-field">
-              <label htmlFor="edit-task-priority">Priority</label>
-              <select
-                id="edit-task-priority"
-                value={priority}
-                onChange={(event) => setPriority(event.target.value)}
-              >
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
-              </select>
+              <label htmlFor="edit-task-start-date">Start Date</label>
+              <input
+                id="edit-task-start-date"
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+              />
             </div>
 
             <div className="form-field">

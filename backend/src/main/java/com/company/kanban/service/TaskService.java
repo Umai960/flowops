@@ -5,6 +5,7 @@ import com.company.kanban.dto.MoveTaskRequest;
 import com.company.kanban.dto.TaskResponse;
 import com.company.kanban.dto.UpdateTaskRequest;
 import com.company.kanban.dto.UpdateTaskStatusRequest;
+import com.company.kanban.dto.UpdateTaskDatesRequest;
 import com.company.kanban.dto.ReviewAction;
 import com.company.kanban.dto.ReviewActionRequest;
 import com.company.kanban.dto.ReassignTaskRequest;
@@ -182,6 +183,8 @@ public class TaskService {
                 column,
                 assignee
         );
+        requireStartNotAfterDue(request.startDate(), request.dueDate());
+        task.setStartDate(request.startDate());
         task.setCreatedBy(currentUser);
         if (generalTask) task.setDepartment(taskDepartment);
         task.setWorkload(request.workload());
@@ -237,6 +240,8 @@ public class TaskService {
         task.setTitle(request.title());
         task.setDescription(request.description());
         task.setPriority(request.priority());
+        requireStartNotAfterDue(request.startDate(), request.dueDate());
+        task.setStartDate(request.startDate());
         task.setDueDate(request.dueDate());
         task.setAssignee(assignee);
         task.setWorkload(request.workload());
@@ -249,6 +254,18 @@ public class TaskService {
         }
 
         return toResponse(savedTask);
+    }
+
+    /** Used by the Gantt chart when a bar is dragged or stretched. */
+    @Transactional
+    public TaskResponse updateTaskDates(Long taskId, UpdateTaskDatesRequest request, User currentUser) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
+        authorizationService.requireTaskAccess(currentUser, task);
+        requireStartNotAfterDue(request.startDate(), request.dueDate());
+        task.setStartDate(request.startDate());
+        task.setDueDate(request.dueDate());
+        return toResponse(taskRepository.save(task));
     }
 
     @Transactional
@@ -543,7 +560,7 @@ public class TaskService {
         taskRepository.saveAll(remainingTasks);
     }
 
-    private TaskResponse toResponse(Task task) {
+    TaskResponse toResponse(Task task) {
 
         User assignee = task.getAssignee();
         User createdBy = task.getCreatedBy();
@@ -579,7 +596,8 @@ public class TaskService {
                 department == null ? null : department.getId(),
                 department == null ? null : department.getName(),
                 task.isGeneralTask(),
-                task.getColor()
+                task.getColor(),
+                task.getStartDate()
         );
     }
 
@@ -636,6 +654,12 @@ public class TaskService {
             task.setCompletedAt(java.time.LocalDateTime.now());
         } else if (task.getStatus() != TaskStatus.DONE) {
             task.setCompletedAt(null);
+        }
+    }
+
+    private void requireStartNotAfterDue(LocalDate startDate, LocalDate dueDate) {
+        if (startDate != null && dueDate != null && startDate.isAfter(dueDate)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start date must be on or before the due date");
         }
     }
 

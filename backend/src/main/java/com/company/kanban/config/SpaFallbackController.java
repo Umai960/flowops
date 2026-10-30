@@ -12,6 +12,7 @@ public class SpaFallbackController {
             "/login",
             "/dashboard",
             "/projects",
+            "/gantt",
             "/reviews",
             "/reports",
             "/reports/monthly",

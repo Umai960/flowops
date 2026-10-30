@@ -25,6 +25,7 @@ import DataManagementPage from "./pages/DataManagementPage";
 import ClientAccessPage from "./pages/ClientAccessPage";
 import ActivationPage from "./pages/ActivationPage";
 import PpcPlanningPage from "./pages/PpcPlanningPage";
+import GanttPage from "./pages/GanttPage";
 import RawMaterialArrivalsPage from "./pages/RawMaterialArrivalsPage";
 import DesktopNotificationsPage from "./pages/DesktopNotificationsPage";
 import CompletedTasksPage from "./pages/CompletedTasksPage";
@@ -50,6 +51,7 @@ function viewForLocation() {
   if (path === "/ppc/raw-material-arrivals") return "ppc-arrivals";
   if (path === "/reviews") return "reviews";
   if (path === "/projects") return "project";
+  if (path === "/gantt") return "gantt";
   if (path.startsWith("/reports")) return "report";
   if (path === "/admin/users") return "users-admin";
   if (path === "/admin/settings/data-management") return "data-management";
@@ -764,7 +766,7 @@ function App() {
         if (view === "dashboard") setStaffRefreshKey((currentKey) => currentKey + 1);
         if (view === "report") { setSelectedReportUserId(null); setSelectedReportDate(null); }
         setActiveView(view);
-        const path=view==='completed'?'/completed':view==='requests'?'/requests':view==='desktop-notifications'?'/settings/desktop-notifications':view==='ppc-planning'?'/ppc/planning':view==='chat'?'/chat':view==='ppc-arrivals'?'/ppc/raw-material-arrivals':view==='users-admin'?'/admin/users':view==='data-management'?'/admin/settings/data-management':view==='client-access'?'/admin/settings/client-access':view==='report'?'/reports/monthly':'/';
+        const path=view==='completed'?'/completed':view==='requests'?'/requests':view==='desktop-notifications'?'/settings/desktop-notifications':view==='ppc-planning'?'/ppc/planning':view==='gantt'?'/gantt':view==='chat'?'/chat':view==='ppc-arrivals'?'/ppc/raw-material-arrivals':view==='users-admin'?'/admin/users':view==='data-management'?'/admin/settings/data-management':view==='client-access'?'/admin/settings/client-access':view==='report'?'/reports/monthly':'/';
         window.history.pushState({},'',path);
       }}
       onNotificationNavigate={(notification) => {
@@ -820,6 +822,8 @@ function App() {
         <ChatPage user={user} target={chatTarget} onSelect={(target) => { setChatTarget(target); window.history.pushState({}, "", `/chat?type=${target.type}&id=${target.id}`); }} />
       ) : activeView === "ppc-planning" ? (
         <PpcPlanningPage user={user} departments={departments} />
+      ) : activeView === "gantt" ? (
+        <GanttPage user={user} departments={departments} />
       ) : activeView === "ppc-arrivals" && (isAdmin || user?.departmentName?.toUpperCase() === "PPC") ? (
         <RawMaterialArrivalsPage />
       ) : activeView === "reviews" ? (

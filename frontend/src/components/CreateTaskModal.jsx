@@ -10,6 +10,7 @@ const INITIAL_FORM = {
   title: "",
   description: "",
   priority: "MEDIUM",
+  startDate: "",
   dueDate: "",
   assigneeId: "",
   workload: "3",
@@ -81,6 +82,11 @@ function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, gen
       return;
     }
 
+    if (formData.startDate && formData.dueDate && formData.startDate > formData.dueDate) {
+      setError("Start date must be on or before the due date.");
+      return;
+    }
+
     if (!isGeneral && !selectedColumn) {
       setError("The selected project does not have a To Do column.");
       return;
@@ -95,6 +101,7 @@ function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, gen
           title,
           description: formData.description.trim() || null,
           priority: formData.priority,
+          startDate: formData.startDate || null,
           dueDate: formData.dueDate || null,
           columnId: isGeneral ? null : selectedColumn?.id,
           departmentId: isGeneral ? Number(generalDepartmentId) : null,
@@ -207,19 +214,28 @@ function CreateTaskModal({ isOpen, column, board, boards = [], departmentId, gen
             rows="4"
           />
 
+          <label htmlFor="task-priority">Priority</label>
+          <select
+            id="task-priority"
+            name="priority"
+            value={formData.priority}
+            onChange={handleChange}
+          >
+            <option value="LOW">LOW</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="HIGH">HIGH</option>
+          </select>
+
           <div className="form-field-row">
             <div className="form-field">
-              <label htmlFor="task-priority">Priority</label>
-              <select
-                id="task-priority"
-                name="priority"
-                value={formData.priority}
+              <label htmlFor="task-start-date">Start Date</label>
+              <input
+                id="task-start-date"
+                name="startDate"
+                type="date"
+                value={formData.startDate}
                 onChange={handleChange}
-              >
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
-              </select>
+              />
             </div>
 
             <div className="form-field">

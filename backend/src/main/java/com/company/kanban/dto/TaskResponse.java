@@ -36,7 +36,8 @@ public record TaskResponse(
         Long departmentId,
         String departmentName,
         boolean generalTask,
-        String color
+        String color,
+        LocalDate startDate
 
 ) {
 }
