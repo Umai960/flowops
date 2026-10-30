@@ -265,7 +265,6 @@ function PersonalKanban({ user, users = [], departments = [] }) {
                       <small className="task-board-name">{task.generalTask ? "GENERAL · PPC" : task.boardName}</small>
                       <p>{task.description}</p>
                       <div className={`task-priority-accent priority-${String(task.priority || "MEDIUM").toLowerCase()}`} title={`Priority: ${task.priority || "MEDIUM"}`} aria-label={`Priority: ${task.priority || "MEDIUM"}`} />
-                      {task.workload != null && <small className="task-workload">Workload {task.workload}</small>}
                       <div className="task-card-footer"><span>{task.assigneeName || "Unassigned"}</span>{task.dueDate && <span>{compactDate(task.dueDate)}</span>}</div>
                       {task.checkpointSummary?.currentOrNextTitle && <small className="task-checkpoint-hint"><span>{task.checkpointSummary.currentOrNextLabel}</span><strong>{task.checkpointSummary.currentOrNextTitle}</strong></small>}
                       <RddTaskActions task={task} user={user} onChanged={loadMyTasks} />
@@ -304,7 +303,6 @@ function PersonalKanban({ user, users = [], departments = [] }) {
             <small className="task-board-name">{dragPreview.task.generalTask ? "GENERAL · PPC" : dragPreview.task.boardName}</small>
             <p>{dragPreview.task.description}</p>
             <div className={`task-priority-accent priority-${String(dragPreview.task.priority || "MEDIUM").toLowerCase()}`} title={`Priority: ${dragPreview.task.priority || "MEDIUM"}`} aria-label={`Priority: ${dragPreview.task.priority || "MEDIUM"}`} />
-            {dragPreview.task.workload != null && <small className="task-workload">Workload {dragPreview.task.workload}</small>}
             <div className="task-card-footer"><span>{dragPreview.task.assigneeName || "Unassigned"}</span>{dragPreview.task.dueDate && <span>{compactDate(dragPreview.task.dueDate)}</span>}</div>
           </div>
         </div>
