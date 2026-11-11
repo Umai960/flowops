@@ -140,6 +140,17 @@ public class NotificationService {
                 request.getTitle() + " is now " + request.getStatus().name().replace('_', ' ').toLowerCase() + ".", request.getId());
     }
 
+    public void notifyMachineBreakdown(MachineBreakdown breakdown, User actor) {
+        Department maintenance = actor.getDepartment() != null && "Maintenance".equalsIgnoreCase(actor.getDepartment().getName())
+                ? actor.getDepartment() : null;
+        if (maintenance == null) return;
+        userRepository.findByDepartmentIdAndRole(maintenance.getId(), Role.MANAGER).stream()
+                .filter(manager -> !manager.getId().equals(actor.getId()))
+                .forEach(manager -> notificationRepository.save(new Notification(manager, NotificationType.MACHINE_BREAKDOWN,
+                        "Machine breakdown", limit(breakdown.getMachine().getCode() + " " + breakdown.getMachine().getName() + ": " + breakdown.getProblem(), 700),
+                        null, null, null)));
+    }
+
     public void notifyChatMessage(User recipient, User actor, String title, String message, String destination) {
         if (recipient == null || actor == null || recipient.getStatus() != AccountStatus.ACTIVE || recipient.getId().equals(actor.getId())) return;
         // A busy chat should not flood the bell and desktop: while an alert for this chat from the

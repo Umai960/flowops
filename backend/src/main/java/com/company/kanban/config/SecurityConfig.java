@@ -47,6 +47,7 @@ public class SecurityConfig {
             "/dashboard",
             "/projects",
             "/gantt",
+            "/machines",
             "/requests",
             "/requests/**",
             "/reviews",
