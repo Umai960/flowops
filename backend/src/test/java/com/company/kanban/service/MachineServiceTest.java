@@ -2,6 +2,7 @@ package com.company.kanban.service;
 
 import com.company.kanban.dto.MachineBreakdownRequest;
 import com.company.kanban.dto.MachineBreakdownUpdateRequest;
+import com.company.kanban.dto.MachinePartRequest;
 import com.company.kanban.dto.MachineRequest;
 import com.company.kanban.entity.*;
 import com.company.kanban.repository.DepartmentRepository;
@@ -13,6 +14,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -89,6 +92,41 @@ class MachineServiceTest {
         assertThat(machines.machineHistory(id, staff)).hasSize(1);
         assertThatThrownBy(() -> machines.updateBreakdown(breakdown.id(), new MachineBreakdownUpdateRequest(MachineBreakdownStatus.OPEN, null), staff))
                 .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void sparePartsKeepHistoryShowExpiryAndWarnTheHodOnce() {
+        String s = UUID.randomUUID().toString().substring(0, 8);
+        Department maintenance = departments.findByNameIgnoreCase("Maintenance").orElseThrow();
+        User hod = users.save(new User("Mt HOD", "phod." + s + "@co.test", "x", Role.MANAGER, maintenance));
+        User staff = users.save(new User("Mt Staff", "pstaff." + s + "@co.test", "x", Role.STAFF, maintenance));
+        Long id = machines.create(new MachineRequest("P-" + s, "Pump", null, null, null, null, null, null), hod).id();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kuala_Lumpur"));
+
+        var oldBelt = machines.recordPart(id, new MachinePartRequest("Belt " + s, null, today.minusDays(200), today.minusDays(5), null), staff);
+        assertThat(oldBelt.expiryStatus()).isEqualTo("EXPIRED");
+        var filter = machines.recordPart(id, new MachinePartRequest("Filter " + s, "F-1", today.minusDays(10), today.plusDays(10), null), staff);
+        assertThat(filter.expiryStatus()).isEqualTo("EXPIRING");
+        assertThat(filter.daysLeft()).isEqualTo(10L);
+        assertThatThrownBy(() -> machines.recordPart(id, new MachinePartRequest("Bad " + s, null, today, today.minusDays(1), null), staff))
+                .isInstanceOf(ResponseStatusException.class);
+
+        machines.notifyPartExpiry();
+        machines.notifyPartExpiry();
+        var hodNotes = notifications.findByRecipientIdAndClearedAtIsNull(hod.getId());
+        assertThat(hodNotes.stream().filter(n -> n.getType() == NotificationType.SPARE_PART_EXPIRED && n.getMessage().contains("Belt " + s))).hasSize(1);
+        assertThat(hodNotes.stream().filter(n -> n.getType() == NotificationType.SPARE_PART_EXPIRING && n.getMessage().contains("Filter " + s))).hasSize(1);
+
+        var newBelt = machines.recordPart(id, new MachinePartRequest("belt " + s, null, today, today.plusDays(365), "New supplier"), staff);
+        assertThat(newBelt.expiryStatus()).isEqualTo("OK");
+        var history = machines.machineParts(id, staff);
+        assertThat(history).hasSize(3);
+        assertThat(history.stream().filter(p -> p.id().equals(oldBelt.id())).findFirst().orElseThrow().replacedOn()).isEqualTo(today);
+        assertThat(machines.currentParts(staff)).extracting(p -> p.id()).contains(newBelt.id(), filter.id()).doesNotContain(oldBelt.id());
+
+        assertThatThrownBy(() -> machines.deletePart(filter.id(), staff)).isInstanceOf(ResponseStatusException.class);
+        machines.deletePart(filter.id(), hod);
+        assertThat(machines.machineParts(id, staff)).hasSize(2);
     }
 
     private MachineStatus status(Long id, User user) {

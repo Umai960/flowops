@@ -28,7 +28,7 @@ public class NotificationSchemaMigration implements ApplicationRunner {
                 "'RAW_MATERIAL_DELAYED','RAW_MATERIAL_FOLLOW_UP_DUE'," +
                 "'MONTHLY_REPORT_3_DAY_REMINDER','MONTHLY_REPORT_MONTH_END','MONTHLY_REPORT_OVERDUE'," +
                 "'REQUEST_CREATED','REQUEST_ACKNOWLEDGED','REQUEST_IN_PROGRESS','REQUEST_COMPLETED','REQUEST_REJECTED','REQUEST_ASSIGNED'," +
-                "'CHAT_MESSAGE','MACHINE_BREAKDOWN'))");
+                "'CHAT_MESSAGE','MACHINE_BREAKDOWN','SPARE_PART_EXPIRING','SPARE_PART_EXPIRED'))");
         // 1.3.0 created this enum check with TASK and PLANNING only; chat now also uses REQUEST.
         jdbcTemplate.execute("ALTER TABLE IF EXISTS chat_threads DROP CONSTRAINT IF EXISTS chat_threads_subject_type_check");
     }

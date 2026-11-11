@@ -2,7 +2,9 @@ package com.company.kanban.service;
 
 import com.company.kanban.dto.*;
 import com.company.kanban.entity.*;
+import com.company.kanban.repository.DepartmentRepository;
 import com.company.kanban.repository.MachineBreakdownRepository;
+import com.company.kanban.repository.MachinePartRepository;
 import com.company.kanban.repository.MachineRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -10,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -32,17 +35,22 @@ public class MachineService {
 
     private final MachineRepository machines;
     private final MachineBreakdownRepository breakdowns;
+    private final MachinePartRepository parts;
+    private final DepartmentRepository departments;
     private final AuthorizationService authorization;
     private final NotificationService notifications;
     private final Clock clock;
 
     @org.springframework.beans.factory.annotation.Autowired
-    public MachineService(MachineRepository machines, MachineBreakdownRepository breakdowns, AuthorizationService authorization, NotificationService notifications) {
-        this(machines, breakdowns, authorization, notifications, Clock.system(ZONE));
+    public MachineService(MachineRepository machines, MachineBreakdownRepository breakdowns, MachinePartRepository parts, DepartmentRepository departments,
+                          AuthorizationService authorization, NotificationService notifications) {
+        this(machines, breakdowns, parts, departments, authorization, notifications, Clock.system(ZONE));
     }
 
-    MachineService(MachineRepository machines, MachineBreakdownRepository breakdowns, AuthorizationService authorization, NotificationService notifications, Clock clock) {
-        this.machines = machines; this.breakdowns = breakdowns; this.authorization = authorization; this.notifications = notifications; this.clock = clock;
+    MachineService(MachineRepository machines, MachineBreakdownRepository breakdowns, MachinePartRepository parts, DepartmentRepository departments,
+                   AuthorizationService authorization, NotificationService notifications, Clock clock) {
+        this.machines = machines; this.breakdowns = breakdowns; this.parts = parts; this.departments = departments;
+        this.authorization = authorization; this.notifications = notifications; this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -145,7 +153,8 @@ public class MachineService {
         MachineBreakdown breakdown = breakdowns.save(new MachineBreakdown(machine, required(request.problem(), "Problem"), user, now()));
         machine.setStatus(MachineStatus.BREAKDOWN);
         machines.save(machine);
-        notifications.notifyMachineBreakdown(breakdown, user);
+        notifications.notifyMaintenanceHods(maintenance(), user, NotificationType.MACHINE_BREAKDOWN, "Machine breakdown",
+                machine.getCode() + " " + machine.getName() + ": " + breakdown.getProblem());
         return MachineBreakdownResponse.from(breakdown, now());
     }
 
@@ -174,6 +183,104 @@ public class MachineService {
         machines.save(machine);
         return MachineBreakdownResponse.from(breakdowns.save(breakdown), now);
     }
+
+    @Transactional(readOnly = true)
+    public List<MachinePartResponse> currentParts(User user) {
+        authorization.requireMachineAccess(user);
+        LocalDate today = today();
+        return parts.findByReplacedOnIsNull().stream()
+                .filter(p -> p.getMachine().isActive())
+                .map(p -> MachinePartResponse.from(p, today))
+                .sorted(Comparator.comparing(MachinePartResponse::expiryDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(MachinePartResponse::machineCode))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MachinePartResponse> machineParts(Long machineId, User user) {
+        authorization.requireMachineAccess(user);
+        find(machineId);
+        LocalDate today = today();
+        return parts.findByMachineIdOrderByInstalledOnDescIdDesc(machineId).stream().map(p -> MachinePartResponse.from(p, today)).toList();
+    }
+
+    /** Records a part fitted to the machine; a current part with the same name becomes history. */
+    @Transactional
+    public MachinePartResponse recordPart(Long machineId, MachinePartRequest request, User user) {
+        authorization.requireMachineAccess(user);
+        Machine machine = find(machineId);
+        validate(request);
+        String name = required(request.partName(), "Part name");
+        parts.findByMachineIdAndReplacedOnIsNullAndPartNameIgnoreCase(machineId, name).forEach(old -> {
+            old.setReplacedOn(request.installedOn());
+            parts.save(old);
+        });
+        MachinePart part = new MachinePart(machine, name, request.installedOn(), user);
+        applyPart(part, request);
+        return MachinePartResponse.from(parts.save(part), today());
+    }
+
+    @Transactional
+    public MachinePartResponse updatePart(Long partId, MachinePartRequest request, User user) {
+        authorization.requireMachineAccess(user);
+        MachinePart part = findPart(partId);
+        validate(request);
+        part.setPartName(required(request.partName(), "Part name"));
+        part.setInstalledOn(request.installedOn());
+        if (!Objects.equals(part.getExpiryDate(), request.expiryDate())) { part.setExpiringNotifiedOn(null); part.setExpiredNotifiedOn(null); }
+        applyPart(part, request);
+        return MachinePartResponse.from(parts.save(part), today());
+    }
+
+    @Transactional
+    public void deletePart(Long partId, User user) {
+        authorization.requireMachineManagement(user);
+        parts.delete(findPart(partId));
+    }
+
+    /** Sends one "expiring soon" and one "expired" notice per current part to the Maintenance HODs. */
+    @Transactional
+    public int notifyPartExpiry() {
+        LocalDate today = today();
+        Department maintenance = maintenance();
+        int sent = 0;
+        for (MachinePart part : parts.findByReplacedOnIsNull()) {
+            if (part.getExpiryDate() == null || !part.getMachine().isActive()) continue;
+            String what = part.getMachine().getCode() + " " + part.getMachine().getName() + ": " + part.getPartName();
+            if (part.getExpiryDate().isBefore(today)) {
+                if (part.getExpiredNotifiedOn() != null) continue;
+                notifications.notifyMaintenanceHods(maintenance, null, NotificationType.SPARE_PART_EXPIRED, "Spare part expired",
+                        what + " expired on " + part.getExpiryDate());
+                part.setExpiredNotifiedOn(today);
+                if (part.getExpiringNotifiedOn() == null) part.setExpiringNotifiedOn(today);
+            } else if (!part.getExpiryDate().isAfter(today.plusDays(MachinePartResponse.WARNING_DAYS))) {
+                if (part.getExpiringNotifiedOn() != null) continue;
+                notifications.notifyMaintenanceHods(maintenance, null, NotificationType.SPARE_PART_EXPIRING, "Spare part expiring soon",
+                        what + " expires on " + part.getExpiryDate());
+                part.setExpiringNotifiedOn(today);
+            } else {
+                continue;
+            }
+            parts.save(part);
+            sent++;
+        }
+        return sent;
+    }
+
+    private void validate(MachinePartRequest request) {
+        if (request.installedOn() == null) throw bad("Date replaced is required");
+        if (request.expiryDate() != null && request.expiryDate().isBefore(request.installedOn())) throw bad("Expiry date cannot be before the date replaced");
+    }
+
+    private void applyPart(MachinePart part, MachinePartRequest request) {
+        part.setPartNumber(clean(request.partNumber()));
+        part.setExpiryDate(request.expiryDate());
+        part.setNotes(clean(request.notes()));
+    }
+
+    private MachinePart findPart(Long id) { return parts.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Spare part not found")); }
+    private Department maintenance() { return departments.findByNameIgnoreCase("Maintenance").orElse(null); }
+    private LocalDate today() { return LocalDate.now(clock.withZone(ZONE)); }
 
     private void apply(Machine machine, MachineRequest request) {
         machine.setLocation(clean(request.location()));

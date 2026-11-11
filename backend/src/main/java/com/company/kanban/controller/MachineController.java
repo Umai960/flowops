@@ -40,6 +40,16 @@ public class MachineController {
     public List<MachineBreakdownResponse> history(@PathVariable Long id, @AuthenticationPrincipal User user) { return service.machineHistory(id, user); }
     @PostMapping("/{id}/breakdowns") @ResponseStatus(HttpStatus.CREATED)
     public MachineBreakdownResponse report(@PathVariable Long id, @Valid @RequestBody MachineBreakdownRequest request, @AuthenticationPrincipal User user) { return service.report(id, request, user); }
+    @GetMapping("/parts")
+    public List<MachinePartResponse> currentParts(@AuthenticationPrincipal User user) { return service.currentParts(user); }
+    @GetMapping("/{id}/parts")
+    public List<MachinePartResponse> machineParts(@PathVariable Long id, @AuthenticationPrincipal User user) { return service.machineParts(id, user); }
+    @PostMapping("/{id}/parts") @ResponseStatus(HttpStatus.CREATED)
+    public MachinePartResponse recordPart(@PathVariable Long id, @Valid @RequestBody MachinePartRequest request, @AuthenticationPrincipal User user) { return service.recordPart(id, request, user); }
+    @PutMapping("/parts/{id}")
+    public MachinePartResponse updatePart(@PathVariable Long id, @Valid @RequestBody MachinePartRequest request, @AuthenticationPrincipal User user) { return service.updatePart(id, request, user); }
+    @DeleteMapping("/parts/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePart(@PathVariable Long id, @AuthenticationPrincipal User user) { service.deletePart(id, user); }
     @PutMapping("/breakdowns/{id}")
     public MachineBreakdownResponse updateBreakdown(@PathVariable Long id, @Valid @RequestBody MachineBreakdownUpdateRequest request, @AuthenticationPrincipal User user) { return service.updateBreakdown(id, request, user); }
 }

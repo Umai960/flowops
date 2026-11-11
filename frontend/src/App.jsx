@@ -777,9 +777,10 @@ function App() {
           setChatTarget(chatTargetFromLocation(destination.includes("?") ? destination.slice(destination.indexOf("?")) : ""));
           setActiveView("chat");
           window.history.pushState({}, "", destination);
-        } else if (notification.type === "MACHINE_BREAKDOWN") {
+        } else if (notification.type === "MACHINE_BREAKDOWN" || notification.type?.startsWith("SPARE_PART_")) {
+          const destination = notification.type === "MACHINE_BREAKDOWN" ? "/machines" : "/machines?tab=parts";
+          window.history.pushState({}, "", destination);
           setActiveView("machines");
-          window.history.pushState({}, "", "/machines");
         } else if (notification.requestId) {
           setActiveView("requests");
           window.history.pushState({}, "", `/requests/${notification.requestId}`);
@@ -830,7 +831,7 @@ function App() {
       ) : activeView === "gantt" ? (
         <GanttPage user={user} departments={departments} />
       ) : activeView === "machines" && (isAdmin || user?.departmentName?.toUpperCase() === "MAINTENANCE") ? (
-        <MachinesPage user={user} />
+        <MachinesPage key={window.location.search} user={user} />
       ) : activeView === "ppc-arrivals" && (isAdmin || user?.departmentName?.toUpperCase() === "PPC") ? (
         <RawMaterialArrivalsPage />
       ) : activeView === "reviews" ? (
