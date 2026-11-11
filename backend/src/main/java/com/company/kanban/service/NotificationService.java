@@ -140,6 +140,15 @@ public class NotificationService {
                 request.getTitle() + " is now " + request.getStatus().name().replace('_', ' ').toLowerCase() + ".", request.getId());
     }
 
+    /** Notifies the Maintenance HODs; actor (may be null for scheduled checks) is not notified about their own action. */
+    public void notifyMaintenanceHods(Department maintenance, User actor, NotificationType type, String title, String message) {
+        if (maintenance == null) return;
+        userRepository.findByDepartmentIdAndRole(maintenance.getId(), Role.MANAGER).stream()
+                .filter(manager -> manager.getStatus() == AccountStatus.ACTIVE)
+                .filter(manager -> actor == null || !manager.getId().equals(actor.getId()))
+                .forEach(manager -> notificationRepository.save(new Notification(manager, type, limit(title, 120), limit(message, 700), null, null, null)));
+    }
+
     public void notifyChatMessage(User recipient, User actor, String title, String message, String destination) {
         if (recipient == null || actor == null || recipient.getStatus() != AccountStatus.ACTIVE || recipient.getId().equals(actor.getId())) return;
         // A busy chat should not flood the bell and desktop: while an alert for this chat from the

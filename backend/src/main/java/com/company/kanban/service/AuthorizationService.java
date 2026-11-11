@@ -28,6 +28,26 @@ public class AuthorizationService {
         }
     }
 
+    public void requireMachineAccess(User user) {
+        if (isAdmin(user)) return;
+        if (!isMaintenance(user)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Machines are available only to Maintenance users and administrators");
+        }
+    }
+
+    public void requireMachineManagement(User user) {
+        if (isAdmin(user)) return;
+        if (!isMaintenance(user) || user.getRole() != Role.MANAGER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the Maintenance HOD or an administrator can change the machine list");
+        }
+    }
+
+    private boolean isMaintenance(User user) {
+        return user != null && user.getDepartment() != null && "Maintenance".equalsIgnoreCase(user.getDepartment().getName());
+    }
+
     public void requirePpcRawMaterialArrivalAccess(User user) {
         if (isAdmin(user)) return;
         if (user == null || user.getDepartment() == null
