@@ -24,7 +24,7 @@ public class MaintenanceService {
     public MaintenanceService(NotificationRepository notifications, ActivationTokenRepository activationTokens,
                               DeviceRegistrationCodeRepository registrationCodes, DataManagementService dataManagement,
                               @Value("${flowops.retention.notification-days:90}") int notificationDays,
-                              ChatService chat, @Value("${flowops.retention.chat-days:90}") int chatDays) {
+                              ChatService chat, @Value("${flowops.retention.chat-days:0}") int chatDays) {
         this.notifications = notifications; this.activationTokens = activationTokens;
         this.registrationCodes = registrationCodes; this.dataManagement = dataManagement; this.notificationDays = notificationDays;
         this.chat = chat; this.chatDays = chatDays;
@@ -35,7 +35,7 @@ public class MaintenanceService {
     public void run() {
         LocalDateTime now = LocalDateTime.now(ZONE);
         notifications.deleteOlderThan(now.minusDays(notificationDays));
-        chat.purgeOlderThan(now.minusDays(chatDays));
+        if (chatDays > 0) chat.purgeOlderThan(now.minusDays(chatDays));
         activationTokens.deleteByExpiresAtBeforeOrConsumedAtBefore(now, now);
         registrationCodes.deleteByExpiresAtBeforeOrUsedAtBefore(now, now);
         dataManagement.rotateBackups(now);
