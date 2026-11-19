@@ -31,7 +31,7 @@ export default function ChatPage({ user, target, onSelect }) {
 
   const isSelected = (thread) => target && thread.subjectType.toLowerCase() === target.type && thread.subjectId === target.id;
   return <section className="chat-page">
-    <div className="admin-page-heading"><div><p className="eyebrow">Workspace</p><h1>Chat</h1><p>Conversations inside interdepartment requests. Messages are kept for 3 months.</p></div></div>
+    <div className="admin-page-heading"><div><p className="eyebrow">Workspace</p><h1>Chat</h1><p>Conversations inside interdepartment requests.</p></div></div>
     <div className="chat-page-layout">
       <aside className="chat-thread-list" aria-label="Chats">
         {canSeeAll && <div className="chat-scope" role="tablist">
