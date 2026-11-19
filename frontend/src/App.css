@@ -1735,3 +1735,69 @@
 .gantt-bar-resize { cursor:ew-resize; }
 .gantt-empty { padding:40px; text-align:center; color:var(--color-text-muted); }
 @media (max-width:760px) { .gantt-body { max-height:none; overflow-x:auto; } .gantt-scroll { flex:none; overflow:visible; } .gantt-labels { position:static; } .gantt-legend { font-size:12px; } }
+
+/* Machines (Maintenance) */
+.machines-page { display:grid; gap:18px; }
+.machines-heading-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.machines-import { cursor:pointer; }
+.machine-summary { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; }
+.machine-summary-card { display:grid; gap:4px; padding:14px 16px; border:1px solid var(--color-border); border-left:4px solid #94a3b8; border-radius:12px; background:var(--color-surface); }
+.machine-summary-card span { color:var(--color-text-muted); font-size:12px; font-weight:700; }
+.machine-summary-card strong { font-size:24px; color:var(--color-text); }
+.machine-summary-card.machine-status-running { border-left-color:#16a34a; }
+.machine-summary-card.machine-status-breakdown { border-left-color:#dc2626; }
+.machine-summary-card.machine-status-under_maintenance { border-left-color:#ea7a0c; }
+.machine-summary-card.machine-status-idle { border-left-color:#6b7280; }
+.machines-tabs, .machines-subtabs { justify-self:start; }
+.machines-filters { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+.machines-filters input[type=search] { flex:1 1 240px; max-width:360px; padding:9px 12px; border:1px solid var(--color-border); border-radius:10px; font:inherit; }
+.machines-filters label { display:flex; gap:6px; align-items:center; font-size:13px; color:var(--color-text-muted); }
+.machines-table td { overflow-wrap:anywhere; }
+.machines-row-actions { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; }
+.machines-row-actions button { padding:6px 10px; font-size:12px; }
+.machines-empty { text-align:center; color:var(--color-text-muted); }
+.machine-inactive td { color:var(--color-text-muted); }
+.status-pill.machine-status-running { background:#e8f8ee; color:#167c4d; }
+.status-pill.machine-status-breakdown { background:#fdeaea; color:#a12b2b; }
+.status-pill.machine-status-under_maintenance { background:#fff1e3; color:#9a4a07; }
+.status-pill.machine-status-idle { background:#f0f1f3; color:#4b5563; }
+.status-badge[class*="machine-breakdown-"] { display:inline-flex; padding:5px 9px; border-radius:999px; font-size:11px; font-weight:800; white-space:nowrap; }
+.status-badge.machine-breakdown-open { background:#fdeaea; color:#a12b2b; }
+.status-badge.machine-breakdown-in_progress { background:#fff1e3; color:#9a4a07; }
+.status-badge.machine-breakdown-completed { background:#e8f8ee; color:#167c4d; }
+.machine-action-field { display:grid; gap:6px; font-size:13px; font-weight:700; }
+.machine-action-field textarea { min-height:60px; padding:9px 12px; border:1px solid var(--color-border); border-radius:10px; font:inherit; }
+.machine-action-taken { margin:0; color:var(--color-text); font-size:13px; }
+.machine-active-toggle { grid-column:1 / -1; display:flex !important; align-items:center; gap:8px; }
+.machine-history-modal { max-width:640px; }
+.machine-history-summary { color:var(--color-text-muted); font-size:13px; }
+.machine-history-list { list-style:none; margin:0; padding:0; display:grid; gap:12px; max-height:60vh; overflow:auto; }
+.machine-history-list li { display:grid; gap:4px; padding:12px; border:1px solid var(--color-border); border-radius:10px; }
+.machine-history-list li > div { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+.machine-history-list p { margin:0; }
+@media (max-width: 760px) { .machines-row-actions { justify-content:flex-start; } }
+button.machine-summary-card { text-align:left; font:inherit; cursor:pointer; }
+.machine-summary-card.machine-summary-parts-due { border-left-color:#ca8a04; }
+.machine-summary-card.machine-summary-parts-expired { border-left-color:#dc2626; }
+.status-pill.part-status-ok { background:#e8f8ee; color:#167c4d; }
+.status-pill.part-status-expiring { background:#fef7d6; color:#7a5a00; }
+.status-pill.part-status-expired { background:#fdeaea; color:#a12b2b; }
+.status-pill.part-status-no_expiry, .status-pill.part-status-replaced { background:#f0f1f3; color:#4b5563; }
+.machine-parts-modal { max-width:720px; max-height:90vh; overflow:auto; }
+.machine-parts-modal h3 { margin:14px 0 8px; font-size:15px; }
+.machine-part-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.machine-part-list li { display:grid; gap:4px; padding:12px; border:1px solid var(--color-border); border-left:4px solid #cbd5e1; border-radius:10px; }
+.machine-part-list li > div { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.machine-part-list li .status-pill { margin-left:auto; }
+.machine-part-list li small { color:var(--color-text-muted); }
+.machine-part-list li.machine-part-ok { border-left-color:#16a34a; }
+.machine-part-list li.machine-part-expiring { border-left-color:#ca8a04; }
+.machine-part-list li.machine-part-expired { border-left-color:#dc2626; }
+.machine-part-actions { display:flex; gap:6px; }
+.machine-part-actions button, .machine-part-quick button { padding:5px 10px; font-size:12px; }
+.machine-part-quick { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; color:var(--color-text-muted); }
+.machine-part-form h3 { margin:0; }
+.machine-part-add { margin-top:12px; }
+.machine-part-history { margin-top:16px; }
+.machine-part-history summary { cursor:pointer; font-weight:700; margin-bottom:8px; }
+.machines-muted { color:var(--color-text-muted); }
